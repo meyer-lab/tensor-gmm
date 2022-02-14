@@ -2,9 +2,10 @@
 Test the data import.
 '''
 import pytest
-from ..imports import import_func
+from ..imports import smallDF
 
 
 def test_import():
     """ Stub test. """
-    import_func()
+    data = smallDF(10)
+    print(data)

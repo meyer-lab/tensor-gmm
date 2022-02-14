@@ -9,7 +9,7 @@ from os.path import dirname, join
 from sklearn.decomposition import PCA
 from scipy import stats
 from sklearn.metrics.cluster import adjusted_rand_score,rand_score
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, cross_val_score
 from pathlib import Path
 from sklearn.mixture import GaussianMixture
 from pomegranate import *
@@ -50,15 +50,9 @@ def GMMpca(ax,gmmtype,modeltype,zflowDF,maxcluster,ksplit):
                 GMM = GeneralMixtureModel.from_samples(MultivariateGaussianDistribution, n_components= clusternumb[k])
 
             # Running GMM model on PCA dataset
-
             if gmmtype == "RandScore":
-                for train_index, test_index in kf.split(pcaDF):
-                    trainX = pcaDF[train_index,:]
-                    GMM.fit(trainX)
-                    gmm_labels[test_index] = GMM.predict(pcaDF[test_index,:])
-
-                bestguess = rand_score(celltypelist,gmm_labels) # Comparing the cell type with the GMM predicted 
-                pcagmmDF = pcagmmDF.append(pd.DataFrame({"Component":[arr[jj]],"Cluster":[clusternumb[kk]],"Score": [bestguess]}))
+                output = cross_val_score(GMM, pcaDF, celltypelist, cv=kf, scoring=rand_score)
+                pcagmmDF = pcagmmDF.append(pd.DataFrame({"Component":[arr[jj]],"Cluster":[clusternumb[kk]],"Score": [np.mean(output)]}))
 
             else: #Score
                 gmm_score = []
