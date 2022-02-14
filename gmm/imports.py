@@ -7,11 +7,12 @@ from scipy import stats
 def smallDF(fracCells):
     # FracCells = Amount of cells per experiment 
     flowDF = importflowDF()
-    flowDFg = flowDF.groupby(by=["Time", "Dose", "Date", "Ligand"])
-
+    gVars = ["Time", "Dose", "Date", "Ligand"]
     # Columns that should be trasformed
     transCols = ["Foxp3", "CD25", "CD3", "CD8", "CD56", "CD45RA"]
-    flowDF[transCols] = flowDFg[transCols].transform(lambda x: (x - np.nanmean(x)) / np.nanstd(x))
+
+    flowDF[transCols] = flowDF.groupby(by=gVars)[transCols].transform(lambda x: (x - np.nanmean(x)) / np.nanstd(x))
+    flowDF = flowDF.groupby(by=gVars).sample(n=fracCells).reset_index()
     return flowDF
 
 
