@@ -36,33 +36,24 @@ def makeFigure():
 
     # Determining rand_score for GMM with dataframe
 
-    # GMMpca(scoretype, modeltype, zflowDF, maxcluster, ksplit)
-    gmmDF_rand = GMMpca("RandScore","GMM",zflowDF,21,5)
-    gmmDF_score = GMMpca("Score","GMM",zflowDF,21,5)
-    # gmmDF_rand = GMMpca("Score", "Pomengranate", zflowDF, 5, 5)
+    # GMMpca(scoretype, modeltype, zflowDF, maxcluster+1, ksplit)
+    gmmDF_rand = GMMpca("RandScore", "GMM", zflowDF, 21, 20)
+    gmmDF_score = GMMpca("Score", "GMM", zflowDF, 21, 20)
+    gmmDF_rand_pom = GMMpca("RandScore", "Pomengranate", zflowDF, 21, 20)
+    gmmDF_score_pom = GMMpca("Score", "Pomengranate", zflowDF, 21, 20)
 
-    # print(gmmDR_rand)
-
-    for i in range(len(components)):
-        randDF = gmmDF_rand.loc[gmmDF_rand.Component == components[i]]
-        scoreDF = gmmDF_score.loc[gmmDF_score.Component == components[i]]
-        ax[1].plot(randDF.Cluster.values, randDF.Score.values, label=components[i])
-        ax[2].plot(scoreDF.Cluster.values, scoreDF.Score.values, label=components[i])
-
-    ax[1].legend(title="Component Number", loc='best')
-    
+    gmmDF = [gmmDF_rand, gmmDF_score, gmmDF_rand_pom, gmmDF_score_pom]
     xlabel = "Cluster Number"
     ylabel = "Score"
-    ax[1].set(xlabel=xlabel, ylabel=ylabel)
-    ax[2].legend(title="Component Number", loc='best')
-    ax[2].set(xlabel=xlabel, ylabel=ylabel)
 
-    # GMMpca(ax[2],"Score","GMM",zflowDF,21,20)
+    for i in range(len(gmmDF)):
+        for j in range(len(components)):
+            cvDF = gmmDF[i].loc[gmmDF[i].Component == components[j]]
+            # print(cvDF)
+            ax[i + 1].plot(cvDF.Cluster.values, cvDF.Score.values, label=components[j])
+        ax[i + 1].legend(title="Component Number", loc='best')
+        ax[i + 1].set(xlabel=xlabel, ylabel=ylabel)
 
-    # This is genereal schematic of function GMMpca(ax,Scorecomparison,typeofGMM,zflowDF,maxcluster,ksplit)
-
-    # GMMpca(ax[1],"RandScore","pomegranate",zflowDF,6,5)
-    # GMMpca(ax[2],"Score","pomegranate",zflowDF,6,5)
 
     # filepath = Path('gmm/output/figure1.csv')
     # filepath.parent.mkdir(parents=True, exist_ok=True)
