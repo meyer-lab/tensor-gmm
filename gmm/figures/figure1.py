@@ -24,7 +24,7 @@ def makeFigure():
     subplotLabel(ax)
 
     # smallDF(Amount of cells wanted per experiment); 336 conditions in total
-    cellperexp = 1000
+    cellperexp = 200
     zflowDF, experimentalcells = smallDF(cellperexp)
 
     ax[0].hist(experimentalcells, bins=20)
@@ -41,7 +41,7 @@ def makeFigure():
     ax[1].set(xlabel=xlabel, ylabel=ylabel)
 
     # Determining rand_score for GMM with dataframe
-    scoreDF = cvGMM(zflowDF, 18)
+    scoreDF = cvGMM(zflowDF, 16)
 
     for i in range(len(components)):
         ax[2].plot(scoreDF.Cluster.values, scoreDF.rand_score.values)
