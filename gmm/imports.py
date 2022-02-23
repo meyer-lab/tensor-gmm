@@ -9,7 +9,7 @@ def smallDF(fracCells):
     flowDF = importflowDF()
     gVars = ["Time", "Dose", "Date", "Ligand"]
     # Columns that should be trasformed
-    transCols = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
+    transCols = ["Foxp3", "CD25", "CD45RA", "CD4"]
 
     # Data was measured for CD3/CD8/CD56 was not measured for non-Tregs/Thelpers
     # Also drop columns with missing values
