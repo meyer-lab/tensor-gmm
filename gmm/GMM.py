@@ -37,9 +37,9 @@ def probGMM(zflowDF, n_clusters: int, cellperexp: int):
     NOTE: This method currently assumes there is a constant number of samples per experiment.
 
     Args:
-        zflowDF (pandas.DataFrame): _description_
+        zflowDF (pandas.DataFrame): DF w/z-scored epitopes values w/pSTAT5 and celltypes
         n_clusters (int): The number of clusters to run the analysis for.
-        cellperexp (int): _description_
+        cellperexp (int): Amount of cells wanted for GMM for each experiment
 
     Returns:
         numpy.array: Matrix of data sample numbers across each condition.

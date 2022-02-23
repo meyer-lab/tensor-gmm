@@ -18,9 +18,13 @@ def smallDF(fracCells):
     flowDF[transCols] = flowDF.groupby(by=gVars)[transCols].transform(lambda x: (x - np.nanmean(x)) / np.nanstd(x))
     flowDF = flowDF.groupby(by=gVars).sample(n=fracCells).reset_index(drop=True)
     flowDF["Cell Type"] = flowDF["Cell Type"].apply(celltypetonumb)
+    concDF = flowDF["Dose"].values
+    ligDF = flowDF["Ligand"].values
+    valDF = flowDF["Valency"].values
+    timeDF = flowDF["Time"].values
     flowDF = flowDF.drop(columns=["Valency", "index", "Time", "Date", "Dose", "Ligand"])
 
-    return flowDF, experimentcells
+    return flowDF, experimentcells, concDF, ligDF, valDF, timeDF
 
 
 def celltypetonumb(typ):
