@@ -1,7 +1,6 @@
 """
 Test the data import.
 """
-from statistics import covariance
 import pytest
 import pandas as pd
 from ..imports import smallDF
