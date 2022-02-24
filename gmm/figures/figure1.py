@@ -80,6 +80,4 @@ def makeFigure():
     ylabel = "pSTAT5"
     ax[4].set(xlabel=xlabel, ylabel=ylabel,xscale="log")
 
-    # statDF.to_csv('output.csv')
-
     return f
