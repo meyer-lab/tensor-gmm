@@ -5,9 +5,11 @@ import enum
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from scipy import stats
 from sklearn.decomposition import PCA
 from pathlib import Path
+
 
 from .common import subplotLabel, getSetup
 from ..imports import importflowDF, smallDF
@@ -19,15 +21,15 @@ def makeFigure():
     # Get list of axis objects
     ax, f = getSetup((8, 4), (2, 3))
 
-    # ax[5].axis("off")
+    ax[5].axis("off")
 
     # Add subplot labels
     subplotLabel(ax)
 
     # smallDF(Amount of cells wanted per experiment); 336 conditions in total
-    cellperexp = 200
+    cellperexp = 50
     uniq = 336
-    zflowDF, experimentalcells, concDF, ligDF, valDF, timeDF = smallDF(cellperexp)
+    zflowDF, experimentalcells = smallDF(cellperexp)
 
     ax[0].hist(experimentalcells, bins=20)
     xlabel = "Number of Cells per Experiment"
@@ -43,7 +45,7 @@ def makeFigure():
     ax[1].set(xlabel=xlabel, ylabel=ylabel)
 
     # scoreDF(Determining rand_score and score for GMM with on DF and max cluster # with output [DF(Cluster #,Score)])
-    maxcluster = 10
+    maxcluster = 18
     scoreDF = cvGMM(zflowDF, maxcluster)
 
     for i in range(len(components)):
@@ -58,17 +60,13 @@ def makeFigure():
     # probGMM(Runs PCA on DF with output [PCs,VarianceExplained])
     nk, means, covariances = probGMM(zflowDF, maxcluster, cellperexp)
 
-    print(np.shape(nk))
-    print(np.shape(means))
-    print(np.shape(covariances))
-
     statDF = []
 
     for i in range(uniq):
-        concentration = concDF[i*cellperexp]
-        ligand = ligDF[i*cellperexp]
-        valency = valDF[i*cellperexp]
-        time = timeDF[i*cellperexp]
+        concentration = zflowDF["Dose"].iloc[i*cellperexp]
+        ligand = zflowDF["Ligand"].iloc[i*cellperexp]
+        valency = zflowDF["Valency"].iloc[i*cellperexp]
+        time = zflowDF["Time"][i*cellperexp]
         for j in range(maxcluster):
             ave_stat = means[i,j,:]
             statDF.append([time,ligand,valency,concentration,j+1,ave_stat[0],ave_stat[1],ave_stat[2],ave_stat[3],ave_stat[4]])
@@ -76,28 +74,12 @@ def makeFigure():
     statDF = pd.DataFrame(statDF,columns=["Time","Ligand","Valency","Concentration",
              "Cluster", "Foxp3","CD25","CD4","CD45RA","pSTAT5"])
 
-    
-    for i,lig in enumerate(np.unique(ligDF)):
-        for j,tim in enumerate(np.unique(timeDF)):
-            for k in range(maxcluster):
-    
-                specificDF = statDF.loc[(statDF["Ligand"] == lig) & (statDF["Time"] == tim) &
-                             (statDF["Cluster"] == k) & (statDF["Valency"] == 1)]
-
-                ax[4].scatter(specificDF["Concentration"].values,specificDF["pSTAT5"].values,label = k)
-            
-            if j == 0:
-                break    # break here
-        if i == 0:
-            break
-    
-  
-
+    sns.scatterplot(data=statDF,x="Concentration",y="pSTAT5", hue="Cluster",ax=ax[4], style="Ligand")
     ax[4].legend(title = "Cluster", loc = 'best')
     xlabel = "Concentration"
     ylabel = "z-score pSTAT5"
     ax[4].set(xlabel=xlabel, ylabel=ylabel,xscale="log")
 
-    specificDF.to_csv('output.csv')
+    # statDF.to_csv('output.csv')
 
     return f
