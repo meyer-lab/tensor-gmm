@@ -12,7 +12,9 @@ def LLscorer(estimator, X, _):
 
 def cvGMM(zflowDF, maxcluster):
     celltypelist = zflowDF["Cell Type"].values  # Obtaining celltypes
-    totalDF = zflowDF.drop(columns=["Cell Type", "pSTAT5","Valency", "index", "Time", "Date", "Dose", "Ligand"])  # Creating matrix that will be used in GMM model
+    totalDF = zflowDF.drop(
+        columns=["Cell Type", "pSTAT5", "Valency", "index", "Time", "Date", "Dose", "Ligand"]
+    )  # Creating matrix that will be used in GMM model
     clusternumb = np.arange(1, maxcluster)  # Amount of clusters
     LLscores = np.zeros_like(clusternumb, dtype=float)
     randScores = np.zeros_like(clusternumb, dtype=float)
@@ -47,8 +49,10 @@ def probGMM(zflowDF, n_clusters: int, cellperexp: int):
         numpy.array: Tensor of covariance matrices across each condition.
     """
     celltypelist = zflowDF["Cell Type"].values  # Obtaining celltypes
-    totalDF = zflowDF.drop(columns=["Cell Type", "pSTAT5","Valency", "index", "Time", "Date", "Dose", "Ligand"])  # Creating matrix that will be used in GMM model
-    statDF = zflowDF.drop(columns=["Cell Type","Valency", "index", "Time", "Date", "Dose", "Ligand"])  # Creating matrix that includes pSTAT5
+    totalDF = zflowDF.drop(
+        columns=["Cell Type", "pSTAT5", "Valency", "index", "Time", "Date", "Dose", "Ligand"]
+    )  # Creating matrix that will be used in GMM model
+    statDF = zflowDF.drop(columns=["Cell Type", "Valency", "index", "Time", "Date", "Dose", "Ligand"])  # Creating matrix that includes pSTAT5
 
     # Fit the GMM with the full dataset
     GMM = GaussianMixture(n_components=n_clusters, covariance_type="full", tol=1e-6, max_iter=5000)
@@ -83,7 +87,7 @@ def runPCA(dataDF):
     arr = np.arange(1, 4, 1)
     totalvar = np.zeros([len(arr)])
     celltypelist = dataDF["Cell Type"].values
-    totalDF = dataDF.drop(columns=["Cell Type", "pSTAT5","Valency", "index", "Time", "Date", "Dose", "Ligand"])
+    totalDF = dataDF.drop(columns=["Cell Type", "pSTAT5", "Valency", "index", "Time", "Date", "Dose", "Ligand"])
 
     # Determining variance explained
     for i in range(len(arr)):

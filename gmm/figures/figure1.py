@@ -63,22 +63,21 @@ def makeFigure():
     statDF = []
 
     for i in range(uniq):
-        concentration = zflowDF["Dose"].iloc[i*cellperexp]
-        ligand = zflowDF["Ligand"].iloc[i*cellperexp]
-        valency = zflowDF["Valency"].iloc[i*cellperexp]
-        time = zflowDF["Time"][i*cellperexp]
+        concentration = zflowDF["Dose"].iloc[i * cellperexp]
+        ligand = zflowDF["Ligand"].iloc[i * cellperexp]
+        valency = zflowDF["Valency"].iloc[i * cellperexp]
+        time = zflowDF["Time"][i * cellperexp]
         for j in range(maxcluster):
-            ave_stat = means[i,j,:]
-            statDF.append([time,ligand,valency,concentration,j+1,ave_stat[0],ave_stat[1],ave_stat[2],ave_stat[3],ave_stat[4]])
+            ave_stat = means[i, j, :]
+            statDF.append([time, ligand, valency, concentration, j + 1, ave_stat[0], ave_stat[1], ave_stat[2], ave_stat[3], ave_stat[4]])
 
-    statDF = pd.DataFrame(statDF,columns=["Time","Ligand","Valency","Concentration",
-             "Cluster", "Foxp3","CD25","CD4","CD45RA","pSTAT5"])
+    statDF = pd.DataFrame(statDF, columns=["Time", "Ligand", "Valency", "Concentration", "Cluster", "Foxp3", "CD25", "CD4", "CD45RA", "pSTAT5"])
 
-    sns.scatterplot(data=statDF,x="Concentration",y="pSTAT5", hue="Cluster",ax=ax[4], style="Ligand")
-    ax[4].legend(title = "Cluster", loc = 'best')
+    sns.scatterplot(data=statDF, x="Concentration", y="pSTAT5", hue="Cluster", ax=ax[4], style="Ligand")
+    ax[4].legend(title="Cluster", loc="best")
     xlabel = "Concentration"
     ylabel = "z-score pSTAT5"
-    ax[4].set(xlabel=xlabel, ylabel=ylabel,xscale="log")
+    ax[4].set(xlabel=xlabel, ylabel=ylabel, xscale="log")
 
     # statDF.to_csv('output.csv')
 
