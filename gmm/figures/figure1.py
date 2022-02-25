@@ -76,9 +76,7 @@ def makeFigure():
     sns.scatterplot(data=statDF, x="Concentration", y="pSTAT5", hue="Cluster", ax=ax[4], style="Ligand")
     ax[4].legend(title="Cluster", loc="best")
     xlabel = "Concentration"
-    ylabel = "z-score pSTAT5"
-    ax[4].set(xlabel=xlabel, ylabel=ylabel, xscale="log")
-
-    # statDF.to_csv('output.csv')
+    ylabel = "pSTAT5"
+    ax[4].set(xlabel=xlabel, ylabel=ylabel,xscale="log")
 
     return f

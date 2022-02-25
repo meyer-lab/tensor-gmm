@@ -44,18 +44,7 @@ def makeFigure():
     ylabel = "Variance"
     ax[1].set(xlabel=xlabel, ylabel=ylabel)
 
-    # scoreDF(Determining rand_score and score for GMM with on DF and max cluster # with output [DF(Cluster #,Score)])
     maxcluster = 18
-    scoreDF = cvGMM(zflowDF, maxcluster)
-
-    for i in range(len(components)):
-        ax[2].plot(scoreDF.Cluster.values, scoreDF.rand_score.values)
-        ax[3].plot(scoreDF.Cluster.values, scoreDF.ll_score.values)
-
-    xlabel = "Cluster Number"
-    ylabel = "Score"
-    ax[2].set(xlabel=xlabel, ylabel=ylabel)
-    ax[3].set(xlabel=xlabel, ylabel=ylabel)
 
     # probGMM(Runs PCA on DF with output [PCs,VarianceExplained])
     nk, means, covariances = probGMM(zflowDF, maxcluster, cellperexp)
@@ -73,11 +62,11 @@ def makeFigure():
 
     statDF = pd.DataFrame(statDF, columns=["Time", "Ligand", "Valency", "Concentration", "Cluster", "Foxp3", "CD25", "CD4", "CD45RA", "pSTAT5"])
 
-    sns.scatterplot(data=statDF, x="Concentration", y="pSTAT5", hue="Cluster", ax=ax[4], style="Ligand")
-    ax[4].legend(title="Cluster", loc="best")
+    sns.scatterplot(data=statDF,x="Concentration",y="pSTAT5", hue="Cluster",ax=ax[4], style="Ligand")
+    ax[2].legend(title = "Cluster", loc = 'best')
     xlabel = "Concentration"
-    ylabel = "z-score pSTAT5"
-    ax[4].set(xlabel=xlabel, ylabel=ylabel, xscale="log")
+    ylabel = "pSTAT5"
+    ax[2].set(xlabel=xlabel, ylabel=ylabel,xscale="log")
 
     # statDF.to_csv('output.csv')
     return f
