@@ -44,6 +44,8 @@ def makeFigure():
     ylabel = "Variance"
     ax[1].set(xlabel=xlabel, ylabel=ylabel)
 
+    maxcluster = 18
+
     # probGMM(Runs PCA on DF with output [PCs,VarianceExplained])
     nk, means, covariances = probGMM(zflowDF, maxcluster, cellperexp)
 
