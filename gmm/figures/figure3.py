@@ -21,24 +21,26 @@ def makeFigure():
     subplotLabel(ax)
 
     # smallDF(Amount of cells wanted per experiment); 336 conditions in total
-    cellperexp = 6000
-    zflowDF, experimentalcells = smallDF(cellperexp)
+    # cellperexp = 6000
+    # zflowDF, experimentalcells = smallDF(cellperexp)
 
-    time = zflowDF["Time"].unique()
-    ligand = ["V91K C-term","WT C-term","N88D C-term"]
-    k=0
+    # time = zflowDF["Time"].unique()
+    # ligand = ["V91K C-term","WT C-term","N88D C-term"]
+    # k=0
 
-    # Investigating distribution of pSTAT5
-    for i,lig in enumerate(ligand):
-        for j,tim in enumerate(time):
-            ligDF = zflowDF.loc[(zflowDF["Ligand"] == lig) & (zflowDF["Time"] == tim) ]
-            if i >= 1:
-                k = i*len(time)
-            else: 
-                pass
+    # # Investigating distribution of pSTAT5
+    # for i,lig in enumerate(ligand):
+    #     for j,tim in enumerate(time):
+    #         ligDF = zflowDF.loc[(zflowDF["Ligand"] == lig) & (zflowDF["Time"] == tim) ]
+    #         if i >= 1:
+    #             k = i*len(time)
+    #         else: 
+    #             pass
 
-            sns.scatterplot(data=ligDF, x="Dose", y="pSTAT5", ax=ax[j+k])
-            ax[k+j].set(xscale="log",ylim=(0, 40000))
-            ax[k+j].set_title("%s : %s hrs" % (lig, tim))
+    #         sns.scatterplot(data=ligDF, x="Dose", y="pSTAT5", ax=ax[j+k])
+    #         ax[k+j].set(xscale="log",ylim=(0, 40000))
+    #         ax[k+j].set_title("%s : %s hrs" % (lig, tim))
+
+    
             
     return f

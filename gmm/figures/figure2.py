@@ -58,4 +58,15 @@ def makeFigure():
     heatmapDF = heatmapDF.set_index("Ligand/Dose")
     sns.heatmap(heatmapDF, ax=ax[2])
 
+    ax[3].hist(zflowDF["pSTAT5"].values,bins=10000)
+    ax[3].set(xlim=(0, 40000))
+
+    ax[4].hist(zflowDF["pSTAT5"].values,bins=10000)
+    ax[4].set(xscale="log",xlim=(0, 40000))
+
+    xlabel = "Event"
+    ylabel = "pSTAT Signal"
+    ax[3].set(xlabel=xlabel, ylabel=ylabel)
+    ax[4].set(xlabel=xlabel, ylabel=ylabel)
+
     return f
