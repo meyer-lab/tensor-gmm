@@ -2,6 +2,7 @@
 This creates Figure 1.
 """
 import pandas as pd
+import numpy as np
 import seaborn as sns
 
 
@@ -13,7 +14,7 @@ from ..GMM import cvGMM
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
-    ax, f = getSetup((8, 4), (2, 3))
+    ax, f = getSetup((20, 10), (4, 3))
 
     ax[5].axis("off")
 
