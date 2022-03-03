@@ -19,7 +19,7 @@ def makeFigure():
     # Add subplot labels
     subplotLabel(ax)
 
-    # smallDF(Amount of cells wanted per experiment); 336 conditions in total
+    # smallDF(Amount of cells wanted per experiment)
     cellperexp = 50
     zflowDF, experimentalcells = smallDF(cellperexp)
 

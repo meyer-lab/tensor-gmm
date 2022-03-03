@@ -19,8 +19,8 @@ def makeFigure():
     # Add subplot labels
     subplotLabel(ax)
 
-    # smallDF(Amount of cells wanted per experiment); 336 conditions in total
-    cellperexp = 6000
+    # smallDF(Amount of cells wanted per experiment)
+    cellperexp = 2000
     zflowDF, _ = smallDF(cellperexp)
 
     maxcluster = 5
@@ -41,6 +41,7 @@ def makeFigure():
     sns.scatterplot(data=meansDF, x="Dose", y="NK", hue="Cluster", ax=ax[1], style="Ligand")
     ax[1].set(xscale="log")
 
+    # heatmap = meansDF.loc[meansDF["Valency"] == 1]
     heatmap = meansDF
     heatmapDF = pd.DataFrame()
 
@@ -51,9 +52,11 @@ def makeFigure():
             for tim in heatmap.Time.unique():
                 for clust in heatmap.Cluster.unique():
                     entry = heatmap.loc[(heatmap.Ligand == ligand) & (heatmap.Dose == dose) & (heatmap.Cluster == clust) & (heatmap.Time == tim)]
-                    row["Cluster:" + str(clust) + " - " + str(tim) + " hrs"] = entry.pSTAT5.to_numpy()
+                    # print(entry)
+                    row["Cluster:" + str(clust) + " - " + str(tim) + " hrs"] = np.mean(entry.pSTAT5.to_numpy())
 
-            heatmapDF = heatmapDF.append(row)
+            heatmapDF = pd.concat([heatmapDF,row])
+            # print(heatmapDF)
 
     heatmapDF = heatmapDF.set_index("Ligand/Dose")
     sns.heatmap(heatmapDF, ax=ax[2])
@@ -62,7 +65,7 @@ def makeFigure():
     ax[3].set(xlim=(0, 40000))
 
     ax[4].hist(zflowDF["pSTAT5"].values,bins=10000)
-    ax[4].set(xscale="log",xlim=(0, 40000))
+    ax[4].set(xscale="log",xlim=(1, 40000))
 
     xlabel = "Event"
     ylabel = "pSTAT Signal"
