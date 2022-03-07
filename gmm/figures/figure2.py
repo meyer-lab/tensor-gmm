@@ -20,7 +20,7 @@ def makeFigure():
     # Add subplot labels
     subplotLabel(ax)
 
-    # smallDF(Amount of cells wanted per experiment)
+    #smallDF(Amount of cells wanted per experiment)
     cellperexp = 6000
     zflowDF, _ = smallDF(cellperexp)
 
@@ -74,16 +74,6 @@ def makeFigure():
     for i, mark in enumerate(markerslist):
         sns.lineplot(data=wtntermDF, x="Dose", y=mark, hue="Cluster", ax=ax[i+4],palette='pastel',ci= None)
         ax[i+4].set(xscale="log")
-
-    # tens = tl.tensor(np.stack([2],[3],[4]))
-    # print(tens)
-    # markerslist = meansDF.columns
-    # tensor_mean = []
-    # for i,tensor in enumerate(tensorlist):
-    #     tensorval[i,:] = np.array([meansDF[tensor].values])
-
-    # print(np.shape(tensor_mean))
-
 
 
     return f
