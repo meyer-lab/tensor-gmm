@@ -76,4 +76,14 @@ def makeFigure():
         ax[i+4].set(xscale="log")
 
 
+
+    for ligand in meansDF.Ligand.unique():
+        for dose in meansDF.Dose.unique():
+            for tim in meansDF.Time.unique():
+                for clust in meansDF.Cluster.unique():
+                    entry = meansDF.loc[(meansDF.Ligand == ligand) & (meansDF.Dose == dose) & (meansDF.Cluster == clust) & (meansDF.Time == tim)]
+                    # Now have all  markers for a specific condition and cluster
+                    pstat = entry.pSTAT5.to_numpy()
+
+
     return f
