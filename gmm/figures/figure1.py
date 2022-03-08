@@ -15,8 +15,6 @@ def makeFigure():
     # Get list of axis objects
     ax, f = getSetup((8, 4), (1, 3))
 
-    ax[5].axis("off")
-
     # Add subplot labels
     subplotLabel(ax)
 
