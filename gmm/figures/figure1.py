@@ -13,7 +13,7 @@ from ..GMM import cvGMM
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
-    ax, f = getSetup((8, 4), (2, 3))
+    ax, f = getSetup((8, 4), (1, 3))
 
     ax[5].axis("off")
 
@@ -34,12 +34,12 @@ def makeFigure():
     scoreDF = cvGMM(zflowDF, maxcluster)
 
     for i in range(maxcluster):
-        ax[2].plot(scoreDF.Cluster.values, scoreDF.rand_score.values)
-        ax[3].plot(scoreDF.Cluster.values, scoreDF.ll_score.values)
+        ax[1].plot(scoreDF.Cluster.values, scoreDF.rand_score.values)
+        ax[2].plot(scoreDF.Cluster.values, scoreDF.ll_score.values)
 
     xlabel = "Cluster Number"
     ylabel = "Score"
+    ax[1].set(xlabel=xlabel, ylabel=ylabel)
     ax[2].set(xlabel=xlabel, ylabel=ylabel)
-    ax[3].set(xlabel=xlabel, ylabel=ylabel)
 
     return f
