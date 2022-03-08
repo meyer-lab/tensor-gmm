@@ -75,15 +75,20 @@ def makeFigure():
         sns.lineplot(data=wtntermDF, x="Dose", y=mark, hue="Cluster", ax=ax[i+4],palette='pastel',ci= None)
         ax[i+4].set(xscale="log")
 
+    ligands = meansDF.Ligand.unique()
+    doses = meansDF.Dose.unique()
+    times = meansDF.Time.unique()
+    clusters = meansDF.Cluster.unique()
 
+    tensor = np.empty((len(ligands), len(doses), len(times), len(clusters)))
 
-    for ligand in meansDF.Ligand.unique():
-        for dose in meansDF.Dose.unique():
-            for tim in meansDF.Time.unique():
-                for clust in meansDF.Cluster.unique():
-                    entry = meansDF.loc[(meansDF.Ligand == ligand) & (meansDF.Dose == dose) & (meansDF.Cluster == clust) & (meansDF.Time == tim)]
+    for i, ligand in enumerate(ligands):
+        for j, dose in enumerate(doses):
+            for k, time in enumerate(times):
+                for l, clust in enumerate(clusters):
+                    entry = meansDF.loc[(meansDF.Ligand == ligand) & (meansDF.Dose == dose) & (meansDF.Cluster == clust) & (meansDF.Time == time)]
                     # Now have all  markers for a specific condition and cluster
-                    pstat = entry.pSTAT5.to_numpy()
+                    tensor[i, j, k, l] = entry.pSTAT5.to_numpy()
 
 
     return f
