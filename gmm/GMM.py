@@ -11,9 +11,8 @@ def LLscorer(estimator, X, _):
 
 def cvGMM(zflowDF, maxcluster):
     celltypelist = zflowDF["Cell Type"].values  # Obtaining celltypes
-    totalDF = zflowDF.drop(
-        columns=["Cell Type", "pSTAT5", "Valency", "index", "Time", "Date", "Dose", "Ligand"]
-    )  # Creating matrix that will be used in GMM model
+    totalDF = zflowDF.drop(columns=["Cell Type", "pSTAT5", "Valency", "index", "Time", "Date", "Dose", "Ligand"])  
+    # Creating matrix that will be used in GMM model
     clusternumb = np.arange(1, maxcluster)  # Amount of clusters
     LLscores = np.zeros_like(clusternumb, dtype=float)
     randScores = np.zeros_like(clusternumb, dtype=float)
