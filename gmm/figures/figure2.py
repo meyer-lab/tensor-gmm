@@ -4,7 +4,7 @@ This creates Figure 2.
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import tensorly as tl 
+import tensorly as tl
 
 from tensorly.decomposition import parafac, non_negative_parafac, partial_tucker
 
@@ -33,14 +33,13 @@ def makeFigure():
     meansDF = pd.concat([meansDF] * maxcluster, ignore_index=True)  # Duplicate for each cluster
     markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
     covarDF = meansDF.copy()
- 
+
     for i, mark in enumerate(markerslist):
         markers_means = means[:, :, i]
         meansDF[mark] = markers_means.flatten(order="F")
-        for j,marker in enumerate(markerslist):
+        for j, marker in enumerate(markerslist):
             markers_covar = covar[:, :, i, j]
             covarDF[mark + "-" + marker] = markers_covar.flatten(order="F")
-
 
     meansDF["Cluster"] = np.repeat(np.arange(1, maxcluster + 1), repeats=markers_means.shape[0])  # Track clusters
     meansDF["NK"] = nk.flatten(order="F")
@@ -70,7 +69,7 @@ def makeFigure():
     heatmapDF = heatmapDF.set_index("Ligand/Dose")
     sns.heatmap(heatmapDF, ax=ax[2])
 
-    ax[3].hist(zflowDF["pSTAT5"].values, bins=1000,color='r')
+    ax[3].hist(zflowDF["pSTAT5"].values, bins=1000, color='r')
     xlabel = "Event"
     ylabel = "pSTAT Signal"
     ax[3].set(xlabel=xlabel, ylabel=ylabel)
@@ -85,15 +84,13 @@ def makeFigure():
     doses = meansDF.Dose.unique()
     times = meansDF.Time.unique()
     clusters = meansDF.Cluster.unique()
-    extrainfo =  ["Time", "Ligand", "Valency", "Dose", "Cluster"]
+    extrainfo = ["Time", "Ligand", "Valency", "Dose", "Cluster"]
     covar_values = covarDF.drop(columns=extrainfo)
-    covarlist =  covar_values.columns
-    
+    covarlist = covar_values.columns
 
-    tensor_means = np.empty((len(times), len(ligands), len(doses), len(clusters),len(markerslist)))
-    tensor_covar1 = np.empty((len(times), len(ligands), len(doses), len(clusters),len(covarlist)))
-    tensor_covar2 = np.empty((len(times), len(ligands), len(doses), len(clusters),len(markerslist),len(markerslist)))
-
+    tensor_means = np.empty((len(times), len(ligands), len(doses), len(clusters), len(markerslist)))
+    tensor_covar1 = np.empty((len(times), len(ligands), len(doses), len(clusters), len(covarlist)))
+    tensor_covar2 = np.empty((len(times), len(ligands), len(doses), len(clusters), len(markerslist), len(markerslist)))
 
     for i, time in enumerate(times):
         for j, ligand in enumerate(ligands):
@@ -101,9 +98,8 @@ def makeFigure():
                 for l, clust in enumerate(clusters):
                     entry = meansDF.loc[(meansDF.Ligand == ligand) & (meansDF.Dose == dose) & (meansDF.Cluster == clust) & (meansDF.Time == time)]
                     # Now have all  markers for a specific condition and cluster
-                    for m,mark in enumerate(markerslist):
+                    for m, mark in enumerate(markerslist):
                         tensor_means[i, j, k, l, m] = entry[mark].to_numpy()
-
 
     for i, time in enumerate(times):
         for j, ligand in enumerate(ligands):
@@ -111,38 +107,34 @@ def makeFigure():
                 for l, clust in enumerate(clusters):
                     # entry = covarDF.loc[(covarDF.Ligand == ligand) & (covarDF.Dose == dose) & (covarDF.Cluster == clust) & (covarDF.Time == time)]
                     # Now have all  markers for a specific condition and cluster
-                    for m,mark in enumerate(markerslist):
+                    for m, mark in enumerate(markerslist):
                         for n, marker in enumerate(markerslist):
                             markers_covar = covar[:, :, m, n]
                             covarian = markers_covar.flatten(order="F")
-                            tensor_covar2[i, j, k, l, m, n] = covarian[n+m]
+                            tensor_covar2[i, j, k, l, m, n] = covarian[n + m]
 
+    _, fact = parafac(tensor_means, rank=4)
+    _, factors2 = non_negative_parafac(tensor_means, rank=4)
+    core, factors3 = partial_tucker(tensor_covar2, modes=[0, 1, 2, 3])
+    decomp = ["parafac", "NNparafac", "partialT"]
 
-    _, fact = parafac(tensor_means,rank=4)
-    _, factors2 = non_negative_parafac(tensor_means,rank=4)
-    core,factors3 = partial_tucker(tensor_covar2, modes=[0,1,2,3])
-    decomp = ["parafac","NNparafac","partialT"]
+    allfactors = [fact, factors2, factors3]
 
-
-
-    allfactors = [fact, factors2,factors3]
-
-    for i in range(len(allfactors)): 
+    for i in range(len(allfactors)):
         factor = allfactors[i]
         decomposition = decomp[i]
-        fac_time = pd.DataFrame(factor[0], columns=[f"Cmp. {i}" for i in np.arange(1,factor[0].shape[1] + 1)], index=times)
-        fac_ligand = pd.DataFrame(factor[1], columns=[f"Cmp. {i}" for i in np.arange(1,factor[1].shape[1] + 1)], index=ligands)
-        fac_dose = pd.DataFrame(factor[2], columns=[f"Cmp. {i}" for i in np.arange(1,factor[2].shape[1] + 1)], index=doses)
-        fac_clust = pd.DataFrame(factor[3], columns=[f"Cmp. {i}" for i in np.arange(1,factor[3].shape[1] + 1)], index=clusters)
+        fac_time = pd.DataFrame(factor[0], columns=[f"Cmp. {i}" for i in np.arange(1, factor[0].shape[1] + 1)], index=times)
+        fac_ligand = pd.DataFrame(factor[1], columns=[f"Cmp. {i}" for i in np.arange(1, factor[1].shape[1] + 1)], index=ligands)
+        fac_dose = pd.DataFrame(factor[2], columns=[f"Cmp. {i}" for i in np.arange(1, factor[2].shape[1] + 1)], index=doses)
+        fac_clust = pd.DataFrame(factor[3], columns=[f"Cmp. {i}" for i in np.arange(1, factor[3].shape[1] + 1)], index=clusters)
 
-        sns.heatmap(data=fac_time, ax=ax[i+9])
-        ax[i+9].set_title(decomposition)
-        sns.heatmap(data=fac_ligand, ax=ax[i+12])
-        ax[i+12].set_title(decomposition)
-        sns.heatmap(data=fac_dose, ax=ax[i+15])
-        ax[i+15].set_title(decomposition)
-        sns.heatmap(data=fac_clust, ax=ax[i+18])
-        ax[i+18].set_title(decomposition)
-
+        sns.heatmap(data=fac_time, ax=ax[i + 9])
+        ax[i + 9].set_title(decomposition)
+        sns.heatmap(data=fac_ligand, ax=ax[i + 12])
+        ax[i + 12].set_title(decomposition)
+        sns.heatmap(data=fac_dose, ax=ax[i + 15])
+        ax[i + 15].set_title(decomposition)
+        sns.heatmap(data=fac_clust, ax=ax[i + 18])
+        ax[i + 18].set_title(decomposition)
 
     return f
