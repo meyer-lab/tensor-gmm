@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 import tensorly as tl
 
-from tensorly.decomposition import parafac, non_negative_parafac, partial_tucker
+from tensorly.decomposition import non_negative_parafac, partial_tucker
 
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
@@ -89,7 +89,6 @@ def makeFigure():
     covarlist = covar_values.columns
 
     tensor_means = np.empty((len(times), len(ligands), len(doses), len(clusters), len(markerslist)))
-    tensor_covar1 = np.empty((len(times), len(ligands), len(doses), len(clusters), len(covarlist)))
     tensor_covar2 = np.empty((len(times), len(ligands), len(doses), len(clusters), len(markerslist), len(markerslist)))
 
     for i, time in enumerate(times):
@@ -113,12 +112,12 @@ def makeFigure():
                             covarian = markers_covar.flatten(order="F")
                             tensor_covar2[i, j, k, l, m, n] = covarian[n + m]
 
-    _, fact = parafac(tensor_means, rank=4)
-    _, factors2 = non_negative_parafac(tensor_means, rank=4)
+    factors2 = non_negative_parafac(tensor_means, rank=4)
+    factors2 = tl.cp_normalize(factors2)
     core, factors3 = partial_tucker(tensor_covar2, modes=[0, 1, 2, 3])
-    decomp = ["parafac", "NNparafac", "partialT"]
+    decomp = ["NNparafac", "partialT"]
 
-    allfactors = [fact, factors2, factors3]
+    allfactors = [factors2.factors, factors3]
 
     for i in range(len(allfactors)):
         factor = allfactors[i]
