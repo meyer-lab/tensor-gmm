@@ -31,7 +31,7 @@ def makeFigure():
     
     rank = 5
 
-    factors_NNP = tensor_decomp(meansDF, tMeans,rank,"NNparafac")
+    factors_NNP = tensor_decomp(meansDF, tCovar,rank,"partialT")
  
     for i in range(len(factors_NNP)):
         sns.heatmap(data=factors_NNP[i],ax=ax[i])
