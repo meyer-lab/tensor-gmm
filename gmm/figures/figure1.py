@@ -1,7 +1,6 @@
 """
 This creates Figure 1.
 """
-import zlib
 import pandas as pd
 import seaborn as sns
 
