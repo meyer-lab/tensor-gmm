@@ -84,9 +84,6 @@ def makeFigure():
     doses = meansDF.Dose.unique()
     times = meansDF.Time.unique()
     clusters = meansDF.Cluster.unique()
-    extrainfo = ["Time", "Ligand", "Valency", "Dose", "Cluster"]
-    covar_values = covarDF.drop(columns=extrainfo)
-    covarlist = covar_values.columns
 
     tensor_means = np.empty((len(times), len(ligands), len(doses), len(clusters), len(markerslist)))
     tensor_covar2 = np.empty((len(times), len(ligands), len(doses), len(clusters), len(markerslist), len(markerslist)))
@@ -100,13 +97,9 @@ def makeFigure():
                     for m, mark in enumerate(markerslist):
                         tensor_means[i, j, k, l, m] = entry[mark].to_numpy()
 
-    for i, time in enumerate(times):
-        for j, ligand in enumerate(ligands):
-            for k, dose in enumerate(doses):
-                for l, clust in enumerate(clusters):
-                    # entry = covarDF.loc[(covarDF.Ligand == ligand) & (covarDF.Dose == dose) & (covarDF.Cluster == clust) & (covarDF.Time == time)]
-                    # Now have all  markers for a specific condition and cluster
-                    for m, mark in enumerate(markerslist):
+                        # Handling covariance
+                        # entry = covarDF.loc[(covarDF.Ligand == ligand) & (covarDF.Dose == dose) & (covarDF.Cluster == clust) & (covarDF.Time == time)]
+                        # Now have all markers for a specific condition and cluster
                         for n, marker in enumerate(markerslist):
                             markers_covar = covar[:, :, m, n]
                             covarian = markers_covar.flatten(order="F")
