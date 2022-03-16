@@ -1,8 +1,6 @@
 """
 This creates Figure 2.
 """
-import numpy as np
-import pandas as pd
 import seaborn as sns
 
 from .common import subplotLabel, getSetup
@@ -23,7 +21,7 @@ def makeFigure():
     zflowDF, _ = smallDF(cellperexp)
 
     maxcluster = 5
-    nk, means, covar = probGMM(zflowDF, maxcluster, cellperexp)
+    nk, means, _ = probGMM(zflowDF, maxcluster, cellperexp)
 
     meansDF, markerslist = meanmarkerDF(zflowDF, cellperexp, means, nk, maxcluster)
 

@@ -1,8 +1,6 @@
 """
 This creates Figure 3.
 """
-import numpy as np
-import pandas as pd
 import seaborn as sns
 
 from .common import subplotLabel, getSetup
