@@ -19,20 +19,20 @@ def makeFigure():
     # Add subplot labels
     subplotLabel(ax)
 
-    #smallDF(Amount of cells wanted per experiment
+    # smallDF(Amount of cells wanted per experiment
     cellperexp = 6000
     zflowDF, _ = smallDF(cellperexp)
     maxcluster = 5
     nk, means, covar = probGMM(zflowDF, maxcluster, cellperexp)
-    meansDF, markerslist = meanmarkerDF(zflowDF,cellperexp,means,nk,maxcluster)
+    meansDF, markerslist = meanmarkerDF(zflowDF, cellperexp, means, nk, maxcluster)
 
-    tMeans = tensor_means(meansDF,markerslist)
-    
+    tMeans = tensor_means(meansDF, markerslist)
+
     rank = 5
 
     factors_NNP = tensor_decomp(tMeans, rank, "partialT")
- 
+
     for i in range(len(factors_NNP)):
-        sns.heatmap(data=factors_NNP[i],ax=ax[i])
+        sns.heatmap(data=factors_NNP[i], ax=ax[i])
 
     return f
