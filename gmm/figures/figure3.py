@@ -46,7 +46,7 @@ def makeFigure():
     # ax[0].yaxis.label.set_size(22)
 
     # for label in (ax[0].get_xticklabels() + ax[0].get_yticklabels()):
-	#     label.set_fontsize(22)
+	  #   label.set_fontsize(22)
 
     # tensor_decomp(tensor means, rank, type of decomposition): [DF,tensor factors/weights] creates DF of factors for different conditions and output of decomposition 
     rank = 5
