@@ -10,9 +10,9 @@ markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 
 
 def get_conditions(df, X):
-    """ Provides all unique conditions for a specific time, ligand, and concentration. """
+    """ Provides all unique conditions for a specific ligand, time, and concentration. """
     assert df.shape[0] % X.shape[0] == 0
-    colNames = ["Time", "Ligand", "Dose"]
+    colNames = ["Ligand", "Time","Dose"]
     cellsPerCondition = int(df.shape[0] / X.shape[0])
     conditions = df[colNames].iloc[::cellsPerCondition]
     conditions = conditions.set_index(colNames)
@@ -25,7 +25,6 @@ def tensor_means(meansDF: pd.DataFrame, means: np.ndarray):
     meansDF["Ligand"] = meansDF["Ligand"] + "-" + meansDF["Valency"].astype(str)
 
     conditions = get_conditions(meansDF, means)
-    print(conditions)
 
     xd = xa.DataArray(means, dims=["Conditions", "Cluster", "Marker"])
     xd = xd.assign_coords(Cluster=np.arange(1, means.shape[1] + 1))
