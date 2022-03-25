@@ -73,8 +73,6 @@ def makeFigure():
 
     covarDF = covarDF.drop(columns = np.append(markerslist,["NK","Valency"]))
 
-
     print(covarDF)
-
 
     return f

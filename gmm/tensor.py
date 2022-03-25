@@ -25,6 +25,7 @@ def tensor_means(meansDF: pd.DataFrame, means: np.ndarray):
     meansDF["Ligand"] = meansDF["Ligand"] + "-" + meansDF["Valency"].astype(str)
 
     conditions = get_conditions(meansDF, means)
+    print(conditions)
 
     xd = xa.DataArray(means, dims=["Conditions", "Cluster", "Marker"])
     xd = xd.assign_coords(Cluster=np.arange(1, means.shape[1] + 1))
