@@ -12,7 +12,7 @@ markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 def get_conditions(df, X):
     """ Provides all unique conditions for a specific ligand, time, and concentration. """
     assert df.shape[0] % X.shape[0] == 0
-    colNames = ["Ligand", "Time","Dose"]
+    colNames = ["Ligand", "Time", "Dose"]
     cellsPerCondition = int(df.shape[0] / X.shape[0])
     conditions = df[colNames].iloc[::cellsPerCondition]
     conditions = conditions.set_index(colNames)
@@ -62,21 +62,20 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
     for ii, dd in enumerate(tensor.dims):
         dfs.append(pd.DataFrame(fac.factors[ii], columns=cmpCol, index=tensor.coords[dd]))
 
-    return dfs,fac
+    return dfs, fac
 
 
-def tensor_R2X(tensor, maxrank,tensortype):
+def tensor_R2X(tensor, maxrank, tensortype):
     """ Calculates the R2X value even where NaN values are present"""
-    rank = np.arange(1,maxrank)
+    rank = np.arange(1, maxrank)
     varexpl = np.empty(len(rank))
 
     for i in range(len(rank)):
-        _,facinfo = tensor_decomp(tensor,rank[i],tensortype)
+        _, facinfo = tensor_decomp(tensor, rank[i], tensortype)
         vTop, vBottom = 0.0, 0.0
         tMask = np.isfinite(tensor)
         vTop += np.sum(np.square(tl.cp_to_tensor(facinfo) * tMask - np.nan_to_num(tensor)))
         vBottom += np.sum(np.square(np.nan_to_num(tensor)))
         varexpl[i] = 1.0 - vTop / vBottom
 
-    return rank,varexpl
-
+    return rank, varexpl
