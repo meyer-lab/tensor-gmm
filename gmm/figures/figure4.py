@@ -1,12 +1,10 @@
 """
 This creates Figure 4.
 """
-import seaborn as sns
-
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM, meanmarkerDF
-from ..tensor import tensor_decomp, tensor_means, tensor_covar, tensor_R2X, meanCP_to_DF, covarTens_to_DF
+from ..tensor import tensor_decomp, tensor_means, tensor_covar, meanCP_to_DF, covarTens_to_DF
 
 
 def makeFigure():
