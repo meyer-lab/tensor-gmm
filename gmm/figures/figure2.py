@@ -7,7 +7,7 @@ import seaborn as sns
 
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
-from ..GMM import probGMM
+from ..GMM import probGMM, meanmarkerDF
 
 
 def meanmarkerDF(zflowDF, cellperexp, means, nk, maxcluster):
