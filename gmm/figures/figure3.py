@@ -27,6 +27,7 @@ def makeFigure():
     _, means, covar = probGMM(zflowDF, maxcluster, cellperexp)
 
     # tensor_means(DF,means of markers): [tensor form of means] converts DF into tensor
+    zflowDF["Ligand"] = zflowDF["Ligand"] + "-" + zflowDF["Valency"].astype(str)
     tMeans = tensor_means(zflowDF, means)
 
     # tensor_covar((DF,covariance of markers): [tensor form of covarinaces] converts DF into tensor

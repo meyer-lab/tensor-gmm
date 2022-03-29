@@ -22,10 +22,8 @@ def get_conditions(df, X):
 def tensor_means(meansDF: pd.DataFrame, means: np.ndarray):
     """ Turn the GMM mean results into a tensor form. """
     # Add valency to ligand name
-    meansDF["Ligand"] = meansDF["Ligand"] + "-" + meansDF["Valency"].astype(str)
 
     conditions = get_conditions(meansDF, means)
-    print(conditions)
 
     xd = xa.DataArray(means, dims=["Conditions", "Cluster", "Marker"])
     xd = xd.assign_coords(Cluster=np.arange(1, means.shape[1] + 1))
@@ -36,7 +34,6 @@ def tensor_means(meansDF: pd.DataFrame, means: np.ndarray):
 def tensor_covar(meansDF: pd.DataFrame, covar: np.ndarray):
     """ Turn the GMM covariance results into tensor form. """
     # Add valency to ligand name
-    meansDF["Ligand"] = meansDF["Ligand"] + "-" + meansDF["Valency"].astype(str)
 
     conditions = get_conditions(meansDF, covar)
 
@@ -81,22 +78,23 @@ def tensor_R2X(tensor, maxrank, tensortype):
     return rank, varexpl
 
 
-def meanCP_to_DF(factorinfo_NNP, zflowDF):
+def meanCP_to_DF(factorinfo_NNP, meansDF):
     """Converts output of factor decomposition into a dataframe"""
     newTens = tl.cp_to_tensor(factorinfo_NNP)
     shapeTens = np.shape(newTens)
+
     # Cluster x Marker x Ligand x Time x Concentration
 
     markDF = []
 
     for i in range(shapeTens[0]):
-        for j, tim in enumerate(zflowDF.Time.unique()):
-            for l, dose in enumerate(zflowDF.Dose.unique()):
-                for k, ligand in enumerate(zflowDF.Ligand.unique()):
+        for j, tim in enumerate(meansDF["Time"].unique()):
+            for l, dose in enumerate(meansDF["Dose"].unique()):
+                for k, ligand in enumerate(meansDF["Ligand"].unique()):
                     ave_mark = newTens[i, :, k, j, l]
                     markDF.append([ligand, dose, tim, i + 1, ave_mark[0], ave_mark[1], ave_mark[2], ave_mark[3], ave_mark[4]])
 
-    markDF = pd.DataFrame(markDF, columns=["Ligand", "Concentration", "Time", "Cluster", "Foxp3", "CD25", "CD4", "CD45RA", "pSTAT5"])
+    markDF = pd.DataFrame(markDF, columns=["Ligand", "Dose", "Time", "Cluster", "Foxp3", "CD25", "CD4", "CD45RA", "pSTAT5"])
 
     return markDF
 
@@ -110,8 +108,40 @@ def covarTens_to_DF(meansDF, covar, markerslist):
             markers_covar = covar[:, :, i, j]
             covarDF[mark + "-" + marker] = markers_covar.flatten(order="F")
 
-    covarDF["Ligand"] = covarDF["Ligand"] + "-" + covarDF["Valency"].astype(str)
-
-    covarDF = covarDF.drop(columns=np.append(markerslist, ["NK", "Valency"]))
-
     return covarDF
+
+def comparingGMM(zflowDF,meansDF,covarDF,NK):
+    """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
+
+    for tim in zflowDF["Time"].unique():
+        for dose in zflowDF["Dose"].unique():
+            for ligand in zflowDF["Ligand"].unique():
+                # Means of GMM 
+                flow_mean = meansDF.loc[(meansDF["Time"] == tim) & (meansDF["Dose"] == dose) & (meansDF["Ligand"] == ligand)]
+                flow_covar = covarDF.loc[(covarDF["Time"] == tim) & (covarDF["Dose"] == dose) & (covarDF["Ligand"] == ligand)]
+                if (flow_mean.empty == False) & (flow_covar.empty == False):
+
+                    flow_markermean = flow_mean[markerslist]
+
+                    # NK values of GMM 
+                    flow_mean = NK.loc[(NK["Time"] == tim) & (NK["Dose"] == dose) & (NK["Ligand"] == ligand)]
+                    flow_nk = flow_mean["NK"]
+
+                    # Covariance of GMM
+                    flow_covardata= flow_covar.drop(columns = ["Time","NK","Ligand","Valency","Dose","Cluster","Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"])
+                    # Depends on cluster want to choose
+
+                    flow_clustercovar = flow_covardata.iloc[[0]]
+                    flow_clustercovar= flow_clustercovar.to_numpy()
+                    flow_markercovar = np.reshape(flow_clustercovar,(5,5))
+
+                    # Original data marker means
+                    zflow_mean = zflowDF.loc[(zflowDF["Time"] == tim) & (zflowDF["Dose"] == dose) & (zflowDF["Ligand"] == ligand)]
+                    zflow_markermean = zflow_mean[markerslist]
+                    zflow_markermean = zflow_markermean.mean(axis="index").to_numpy()
+
+                else: 
+                    pass
+
+    
+    return 
