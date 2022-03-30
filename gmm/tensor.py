@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import tensorly as tl
 import xarray as xa
+from sklearn.mixture import GaussianMixture
 
 from tensorly.decomposition import non_negative_parafac, parafac
 from tensorly.cp_tensor import cp_normalize
@@ -110,38 +111,34 @@ def covarTens_to_DF(meansDF, covar, markerslist):
 
     return covarDF
 
-def comparingGMM(zflowDF,meansDF,covarDF,NK):
+
+def comparingGMM(zflowDF, meansDF, covarDF, nk: np.ndarray):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
+    assert nk.ndim == 1
+    nk /= np.sum(nk)
+    conditions = zflowDF.groupby(["Time", "Dose", "Ligand"])
 
-    for tim in zflowDF["Time"].unique():
-        for dose in zflowDF["Dose"].unique():
-            for ligand in zflowDF["Ligand"].unique():
-                # Means of GMM 
-                flow_mean = meansDF.loc[(meansDF["Time"] == tim) & (meansDF["Dose"] == dose) & (meansDF["Ligand"] == ligand)]
-                flow_covar = covarDF.loc[(covarDF["Time"] == tim) & (covarDF["Dose"] == dose) & (covarDF["Ligand"] == ligand)]
-                if (flow_mean.empty == False) & (flow_covar.empty == False):
+    loglik = 0.0
 
-                    flow_markermean = flow_mean[markerslist]
+    for name, cond_cells in conditions:
+        # Means of GMM
+        flow_mean = meansDF.loc[(meansDF["Time"] == name[0]) & (meansDF["Dose"] == name[1]) & (meansDF["Ligand"] == name[2])]
+        flow_mean = flow_mean.sort_values(by=['Cluster'])
+        flow_mean = flow_mean[markerslist]
+        flow_covar = covarDF.loc[(covarDF["Time"] == name[0]) & (covarDF["Dose"] == name[1]) & (covarDF["Ligand"] == name[2])]
+        print(flow_covar.size)
+        print(name)
+        assert flow_mean.shape[0] == flow_covar.shape[0] # Rows are clusters
+        assert flow_mean.size > 0
+        assert flow_covar.size > 0
 
-                    # NK values of GMM 
-                    flow_mean = NK.loc[(NK["Time"] == tim) & (NK["Dose"] == dose) & (NK["Ligand"] == ligand)]
-                    flow_nk = flow_mean["NK"]
+        X = cond_cells[markerslist].to_numpy()
 
-                    # Covariance of GMM
-                    flow_covardata= flow_covar.drop(columns = ["Time","NK","Ligand","Valency","Dose","Cluster","Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"])
-                    # Depends on cluster want to choose
+        gmm = GaussianMixture(n_components=nk.size, max_iter=2, covariance_type="full", means_init=flow_mean.to_numpy(), weights_init=nk)
+        gmm.fit(X) # One iteration to make the covariance matrix
+        # Still need to plugin the covariance matrix
 
-                    flow_clustercovar = flow_covardata.iloc[[0]]
-                    flow_clustercovar= flow_clustercovar.to_numpy()
-                    flow_markercovar = np.reshape(flow_clustercovar,(5,5))
+        loglik += np.sum(gmm.score_samples(X))
+        print(loglik)
 
-                    # Original data marker means
-                    zflow_mean = zflowDF.loc[(zflowDF["Time"] == tim) & (zflowDF["Dose"] == dose) & (zflowDF["Ligand"] == ligand)]
-                    zflow_markermean = zflow_mean[markerslist]
-                    zflow_markermean = zflow_markermean.mean(axis="index").to_numpy()
-
-                else: 
-                    pass
-
-    
-    return 
+    return

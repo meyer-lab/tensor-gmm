@@ -64,7 +64,7 @@ def probGMM(zflowDF, n_clusters: int, cellperexp: int):
         assert indDF.shape[0] == cellperexp  # Check my indexing
         assert indDF.shape[0] == resp_ind.shape[0]  # Check my indexing
 
-        output = _estimate_gaussian_parameters(indDF.values, resp_ind, reg_covar=1e-6, covariance_type="full")
+        output = _estimate_gaussian_parameters(indDF.values, np.exp(resp_ind), reg_covar=1e-6, covariance_type="full")
         nk.append(output[0])
         means.append(output[1])
         covariances.append(output[2])

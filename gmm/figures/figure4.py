@@ -1,8 +1,7 @@
 """
 This creates Figure 4.
 """
-import numpy as np
-import pandas as pd
+from scipy.stats import gmean
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM, meanmarkerDF
@@ -47,6 +46,7 @@ def makeFigure():
     # covarTens_to_DF(DF,covariances,list of all markers):[DF] converts output of GMM to DF
     covarDF = covarTens_to_DF(meansDF, covar, markerslist)
 
-    output = comparingGMM(zflowDF, markDF, covarDF, meansDF)
+    nkCommon = gmean(nk, axis=0) # nk is shared across conditions
+    output = comparingGMM(zflowDF, markDF, covarDF, nkCommon)
 
     return f
