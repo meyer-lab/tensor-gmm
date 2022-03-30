@@ -42,7 +42,9 @@ def makeFigure():
     ylabel = "R2X"
     ax[0].set(xlabel=xlabel, ylabel=ylabel)
 
-    # tensor_decomp(tensor means, rank, type of decomposition): [DF,tensor factors/weights] creates DF of factors for different conditions and output of decomposition
+    # tensor_decomp(tensor means, rank, type of decomposition): [DF,tensor
+    # factors/weights] creates DF of factors for different conditions and
+    # output of decomposition
     rank = 5
     factors_NNP, _ = tensor_decomp(tMeans, rank, "NNparafac")
 

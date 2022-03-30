@@ -35,7 +35,9 @@ def makeFigure():
     # tensor_covar((DF,covariance of markers): [tensor form of covarinaces] converts DF into tensor
     _ = tensor_covar(zflowDF, covar)
 
-    # tensor_decomp(tensor means, rank, type of decomposition): [DF,tensorfactors/weights] creates DF of factors for different conditions and output of decomposition
+    # tensor_decomp(tensor means, rank, type of decomposition):
+    # [DF,tensorfactors/weights] creates DF of factors for different
+    # conditions and output of decomposition
     rank = 5
     factors_NNP, factorinfo_NNP = tensor_decomp(tMeans, rank, "NNparafac")
 
@@ -45,8 +47,6 @@ def makeFigure():
     # covarTens_to_DF(DF,covariances,list of all markers):[DF] converts output of GMM to DF
     covarDF = covarTens_to_DF(meansDF, covar, markerslist)
 
-    output = comparingGMM(zflowDF,markDF,covarDF,meansDF)
-
-
+    output = comparingGMM(zflowDF, markDF, covarDF, meansDF)
 
     return f
