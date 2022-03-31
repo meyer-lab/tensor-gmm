@@ -1,12 +1,11 @@
 """
 This creates Figure 4.
 """
-import numpy as np
 from scipy.stats import gmean
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, tensor_means, tensor_covar, meanCP_to_DF, comparingGMM
+from ..tensor import tensor_decomp, tensor_means, tensor_covar, meanCP_to_DF
 
 
 def makeFigure():
