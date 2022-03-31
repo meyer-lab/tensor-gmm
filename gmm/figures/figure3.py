@@ -26,8 +26,12 @@ def makeFigure():
     maxcluster = 5
     _, means, covar = probGMM(zflowDF, maxcluster, cellperexp)
 
+    conditions = zflowDF.iloc[::cellperexp]
+    conditions = conditions[["Time", "Dose", "Ligand"]]
+    conditions = conditions.set_index(["Time", "Dose", "Ligand"])
+
     # tensor_means(DF,means of markers): [tensor form of means] converts DF into tensor
-    tMeans = tensor_means(zflowDF, means)
+    tMeans = tensor_means(conditions, means)
 
     # tensor_R2X(tensor means, maximum rank): [list of rankings,varexpl_NNP] outputs  and variance explained
     maxrank = 10
