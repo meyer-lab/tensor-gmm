@@ -47,9 +47,9 @@ def importflowDF():
     Cells are labeled via Thelper, None, Treg, CD8 or NK"""
 
     monomeric = pq.read_table("/opt/andrew/FlowDataGMM_Mon_NoSub.pq")
-    dimericwt = pq.read_table("/opt/andrew/FlowDataGMM_DimWT_NoSub.pq")
+    # dimericwt = pq.read_table("/opt/andrew/FlowDataGMM_DimWT_NoSub.pq")
     monomeric = monomeric.to_pandas()
-    dimericwt = dimericwt.to_pandas()
+    # dimericwt = dimericwt.to_pandas()
     # pd.concat([monomeric,dimericwt])
 
     return monomeric
