@@ -11,30 +11,16 @@ from tensorly.cp_tensor import cp_normalize
 markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 
 
-def get_conditions(df, X):
-    """ Provides all unique conditions for a specific time, ligand, and concentration. """
-    assert df.shape[0] % X.shape[0] == 0
-    colNames = ["Ligand", "Time", "Dose"]
-    cellsPerCondition = int(df.shape[0] / X.shape[0])
-    conditions = df[colNames].iloc[::cellsPerCondition]
-    conditions = conditions.set_index(colNames)
-    return conditions
-
-
-def tensor_means(meansDF: pd.DataFrame, means: np.ndarray):
+def tensor_means(conditions, means: np.ndarray):
     """ Turn the GMM mean results into a tensor form. """
-    conditions = get_conditions(meansDF, means)
-
     xd = xa.DataArray(means, dims=["Conditions", "Cluster", "Marker"])
     xd = xd.assign_coords(Cluster=np.arange(1, means.shape[1] + 1))
     xd = xd.assign_coords(Marker=markerslist, Conditions=conditions.index)
     return xd.unstack("Conditions")
 
 
-def tensor_covar(meansDF: pd.DataFrame, covar: np.ndarray):
+def tensor_covar(conditions, covar: np.ndarray):
     """ Turn the GMM covariance results into tensor form. """
-    conditions = get_conditions(meansDF, covar)
-
     # covar is conditions x clusters x markers x markers
     xd = xa.DataArray(covar, dims=["Conditions", "Cluster", "Marker1", "Marker2"])
     xd = xd.assign_coords(Cluster=np.arange(1, covar.shape[1] + 1))
@@ -92,8 +78,8 @@ def comparingGMM(zflowDF, meansDF, tCovar, nk: np.ndarray):
 
     for name, cond_cells in conditions:
         # Means of GMM
-        flow_mean = meansDF.loc[:, markerslist, name[2], name[0], name[1]]
-        flow_covar = tCovar.loc[:, markerslist, markerslist, name[2], name[0], name[1]]
+        flow_mean = meansDF.loc[:, markerslist, name[0], name[1], name[2]]
+        flow_covar = tCovar.loc[:, markerslist, markerslist, name[0], name[1], name[2]]
         assert flow_mean.shape[0] == flow_covar.shape[0] # Rows are clusters
         assert flow_mean.size > 0
         assert flow_covar.size > 0

@@ -25,9 +25,13 @@ def makeFigure():
     maxcluster = 4
     nk, means, covar = probGMM(zflowDF, maxcluster, cellperexp)
 
+    conditions = zflowDF.iloc[::cellperexp]
+    conditions = conditions[["Time", "Dose", "Ligand"]]
+    conditions = conditions.set_index(["Time", "Dose", "Ligand"])
+
     # Tensorify data
-    tMeans = tensor_means(zflowDF, means)
-    tCovar = tensor_covar(zflowDF, covar)
+    tMeans = tensor_means(conditions, means)
+    tCovar = tensor_covar(conditions, covar)
 
     # tensor_decomp(tensor means, rank, type of decomposition):
     # [DF,tensorfactors/weights] creates DF of factors for different
