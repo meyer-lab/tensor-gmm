@@ -52,6 +52,7 @@ def probGMM(zflowDF, n_clusters: int, cellperexp: int):
     GMM = GaussianMixture(n_components=n_clusters, covariance_type="full", max_iter=5000, verbose=20)
     GMM.fit(markerDF)
     _, log_resp = GMM._estimate_log_prob_resp(markerDF)  # Get the responsibilities
+    assert log_resp.shape[0] == zflowDF.shape[0]  # Check shapes
 
     # Setup storage
     nk = list()
@@ -60,10 +61,9 @@ def probGMM(zflowDF, n_clusters: int, cellperexp: int):
 
     # Loop over separate conditions
     for i in range(0, markerDF.shape[0], cellperexp):
-        xx = zflowDF.loc[i: i + cellperexp - 1]
-        print(xx)
-        indDF = statDF.loc[i: i + cellperexp - 1]
-        resp_ind = log_resp[i: i + cellperexp, :]
+        endi = i + cellperexp
+        indDF = statDF.iloc[i:endi]
+        resp_ind = log_resp[i:endi, :]
         assert indDF.shape[0] == cellperexp  # Check my indexing
         assert indDF.shape[0] == resp_ind.shape[0]  # Check my indexing
 

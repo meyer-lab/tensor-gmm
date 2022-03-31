@@ -97,11 +97,8 @@ def comparingGMM(zflowDF, meansDF, tCovar, nk: np.ndarray):
         assert flow_mean.shape[0] == flow_covar.shape[0] # Rows are clusters
         assert flow_mean.size > 0
         assert flow_covar.size > 0
-        print(flow_covar)
-        if np.any(np.isnan(flow_mean)):
-            assert np.all(np.isnan(flow_covar))
-            print("Skipping missing values")
-            continue
+        assert np.all(np.isfinite(flow_mean))
+        assert np.all(np.isfinite(flow_covar))
 
         X = cond_cells[markerslist].to_numpy()
 
