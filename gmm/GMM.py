@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import xarray as xa
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import KFold
@@ -14,7 +15,7 @@ def LLscorer(estimator, X, _):
 def cvGMM(zflowDF, maxcluster: int):
     """ Runs CV on GMM model with score and rand score for multiple clusters"""
     X = zflowDF.drop(
-        columns=["Cell Type", "pSTAT5", "Valency", "index", "Time", "Date", "Dose", "Ligand"]
+        columns=["Cell Type", "pSTAT5", "index", "Time", "Date", "Dose", "Ligand"]
     )  # Creating matrix that will be used in GMM model
 
     cv = KFold(10, shuffle=True)
@@ -44,7 +45,7 @@ def probGMM(zflowDF, n_clusters: int, cellperexp: int):
         numpy.array: Matrix of means across each condition.
         numpy.array: Tensor of covariance matrices across each condition.
     """
-    statDF = zflowDF.drop(columns=["Cell Type", "Valency", "index", "Time", "Date", "Dose", "Ligand"])  # Creating matrix that includes pSTAT5
+    statDF = zflowDF.drop(columns=["Cell Type", "index", "Time", "Date", "Dose", "Ligand"])  # Creating matrix that includes pSTAT5
     markerDF = statDF.drop(columns=["pSTAT5"])  # Creating matrix that will be used in GMM model, only markers
 
     # Fit the GMM with the full dataset
@@ -59,6 +60,8 @@ def probGMM(zflowDF, n_clusters: int, cellperexp: int):
 
     # Loop over separate conditions
     for i in range(0, markerDF.shape[0], cellperexp):
+        xx = zflowDF.loc[i: i + cellperexp - 1]
+        print(xx)
         indDF = statDF.loc[i: i + cellperexp - 1]
         resp_ind = log_resp[i: i + cellperexp, :]
         assert indDF.shape[0] == cellperexp  # Check my indexing
@@ -75,7 +78,7 @@ def probGMM(zflowDF, n_clusters: int, cellperexp: int):
 def meanmarkerDF(zflowDF, cellperexp, means, nk, maxcluster):
     """Combines NK/Mean Values into DF and correspond to different conditions per clusters"""
     meansDF = zflowDF.iloc[::cellperexp, :]  # Subset to one row per expt
-    meansDF = meansDF[["Time", "Ligand", "Valency", "Dose"]]  # Only keep descriptive rows
+    meansDF = meansDF[["Time", "Ligand", "Dose"]]  # Only keep descriptive rows
     meansDF = pd.concat([meansDF] * maxcluster, ignore_index=True)  # Duplicate for each cluster
     markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
     for i, mark in enumerate(markerslist):

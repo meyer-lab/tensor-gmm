@@ -25,6 +25,8 @@ def smallDF(fracCells):
     flowDF["Cell Type"] = flowDF["Cell Type"].apply(celltypetonumb)
 
     flowDF["pSTAT5"] /= np.std(flowDF["pSTAT5"])
+    flowDF["Ligand"] = flowDF["Ligand"] + "-" + flowDF["Valency"].astype(int).astype(str)
+    flowDF.drop("Valency", axis=1, inplace=True)
 
     return flowDF, experimentcells
 
