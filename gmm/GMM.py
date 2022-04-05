@@ -45,12 +45,11 @@ def probGMM(zflowDF, n_clusters: int):
 
     # Setup storage
     nk = xa.DataArray(np.full((n_clusters, len(ligand), len(doses), len(times)), np.nan),
-                      coords={"Cluster": np.arange(1,n_clusters+1), "Ligand": ligand, "Dose": doses, "Time": times})
+                      coords={"Cluster": np.arange(1, n_clusters + 1), "Ligand": ligand, "Dose": doses, "Time": times})
     means = xa.DataArray(np.full((n_clusters, len(markerslist), len(ligand), len(doses), len(times)), np.nan),
-                         coords={"Cluster": np.arange(1,n_clusters+1), "Markers": markerslist, "Ligand": ligand, "Dose": doses, "Time": times})
+                         coords={"Cluster": np.arange(1, n_clusters + 1), "Markers": markerslist, "Ligand": ligand, "Dose": doses, "Time": times})
     covariances = xa.DataArray(np.full((n_clusters, len(markerslist), len(markerslist), len(ligand), len(doses), len(times)), np.nan),
-                         coords={"Cluster": np.arange(1,n_clusters+1), "Marker1": markerslist, "Marker2": markerslist, "Ligand": ligand, "Dose": doses, "Time": times})
-
+                               coords={"Cluster": np.arange(1, n_clusters + 1), "Marker1": markerslist, "Marker2": markerslist, "Ligand": ligand, "Dose": doses, "Time": times})
 
     # Loop over separate conditions
     for name, cond_cells in zflowDF.groupby(["Ligand", "Dose", "Time"]):

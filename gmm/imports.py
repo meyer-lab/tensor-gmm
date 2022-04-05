@@ -15,7 +15,7 @@ def smallDF(fracCells):
     transCols = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 
     flowDF["Ligand"] = flowDF["Ligand"] + "-" + flowDF["Valency"].astype(int).astype(str)
-    flowDF.drop(columns = ["Valency","index", "Date"], axis=1, inplace=True)
+    flowDF.drop(columns=["Valency", "index", "Date"], axis=1, inplace=True)
 
     # Data was measured for CD3/CD8/CD56 was not measured for non-Tregs/Thelpers
     # Also drop columns with missing values
