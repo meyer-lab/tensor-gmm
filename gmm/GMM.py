@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import xarray as xa
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import KFold
