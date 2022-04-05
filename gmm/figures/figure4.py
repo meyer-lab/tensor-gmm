@@ -40,7 +40,7 @@ def makeFigure():
     # factors_NNP, factorinfo_NNP = tensor_decomp(tMeans, rank, "NNparafac")
 
     # meanCP_to_DF(factors/weights,short DF):[DF] converts tensor decomposition to DF
-    # markDF = meanCP_to_DF(factorinfo_NNP, tMeans)
+    markDF = meanCP_to_DF(factorinfo_NNP, tMeans)
 
     nkCommon = gmean(nk, axis=0) # nk is shared across conditions
     output = comparingGMM(zflowDF, tMeans, tCovar, nkCommon)

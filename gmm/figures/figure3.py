@@ -2,12 +2,11 @@
 This creates Figure 3.
 """
 import seaborn as sns
-import numpy as np
 
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, tensor_means, tensor_covar, tensor_R2X
+from ..tensor import tensor_decomp, tensor_means, tensor_R2X
 
 
 def makeFigure():
@@ -24,7 +23,7 @@ def makeFigure():
 
     # probGM(DF,maximum cluster,cellsperexperiment): [nk, means, covar] while using estimation gaussian parameters
     maxcluster = 5
-    _, means, covar = probGMM(zflowDF, maxcluster, cellperexp)
+    _, means, _ = probGMM(zflowDF, maxcluster, cellperexp)
 
     conditions = zflowDF.iloc[::cellperexp]
     conditions = conditions[["Time", "Dose", "Ligand"]]
