@@ -1,7 +1,6 @@
 """
 This creates Figure 4.
 """
-import numpy as np
 from scipy.stats import gmean
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
