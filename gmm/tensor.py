@@ -81,3 +81,7 @@ def comparingGMM(zflowDF: pd.DataFrame, tMeans: xa.DataArray, tCovar: xa.DataArr
         loglik += np.sum(gmm.score_samples(X))
 
     return loglik
+
+
+def maxloglik(nkinput,zflowDF,tMeans,tCovar):
+    return -comparingGMM(zflowDF, tMeans, tCovar, nkinput)

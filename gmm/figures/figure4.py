@@ -2,10 +2,11 @@
 This creates Figure 4.
 """
 import numpy as np
+from scipy.optimize import least_squares, Bounds
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, comparingGMM
+from ..tensor import tensor_decomp, comparingGMM, maxloglik
 
 
 def makeFigure():
@@ -31,6 +32,15 @@ def makeFigure():
     factors_NNP, factorinfo_NNP = tensor_decomp(tMeans, rank, "NNparafac")
 
     nkCommon = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))  # nk is shared across conditions
-    total_loglik = comparingGMM(zflowDF, tMeans, tCovar, nkCommon)
+    nkGuess = nkCommon
+    optimized = least_squares(maxloglik,nkGuess, args = (zflowDF,tMeans,tCovar))
+
+    # minbound = [1e-2,1e-2,1e-2,1e-2]
+    # maxbound = [100,100,100,100]
+    # nkBounds = Bounds(minbound,maxbound)
+    # optimized = least_squares(maxloglik, nkGuess, bounds = (minbound,maxbound), args = (zflowDF,tMeans,tCovar))
+    
+    print("NK Guess:", nkGuess)
+    print("Optimized NK:", optimized.x)
 
     return f
