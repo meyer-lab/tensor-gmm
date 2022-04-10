@@ -83,5 +83,47 @@ def comparingGMM(zflowDF: pd.DataFrame, tMeans: xa.DataArray, tCovar: xa.DataArr
     return loglik
 
 
-def maxloglik(nkinput, zflowDF, tMeans, tCovar):
-    return -comparingGMM(zflowDF, tMeans, tCovar, nkinput)
+def leastsquaresguess(nk,tMeans,maxcluster):
+    
+    nkCommon = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))  # nk is shared across conditions
+    
+    tMeans_vector = []
+    doses = tMeans.coords["Dose"].values
+    ligand = tMeans.coords["Ligand"].values
+   
+    for i in range(maxcluster):
+        for j in range(len(markerslist)):
+            for k in range(len(ligand)):
+                for l in range(len(doses)):
+                    meansvalues = tMeans[i,j,k,l,:].values
+                    tMeans_vector = np.append(tMeans_vector, meansvalues)
+
+    return np.append(nkCommon,tMeans_vector)
+
+def maxloglik(nk_tMeans_input, maxcluster, zflowDF, tMeans, tCovar):
+
+    nk_guess = nk_tMeans_input[0:maxcluster]
+    assert len(nk_guess) == maxcluster
+    tMeans_input = nk_tMeans_input[maxcluster:]
+    assert len(tMeans_input) == len(tMeans.values.flatten())
+
+    doses = tMeans.coords["Dose"].values
+    ligand = tMeans.coords["Ligand"].values
+    times = tMeans.coords["Time"].values
+    clustArray = np.arange(1, maxcluster + 1)
+
+    tGuessMeans = xa.DataArray(np.full((maxcluster,len(markerslist),len(ligand),len(doses),len(times)),np.nan),
+        coords={"Cluster": clustArray,"Markers": markerslist,"Ligand": ligand, "Dose": doses,"Time": times})
+             
+    totalcount = 0
+    for i in range(maxcluster):
+        for j in range(len(markerslist)):
+            for k in range(len(ligand)):
+                for l in range(len(doses)):
+                    for m in range(len(times)):
+                        tGuessMeans[i,j,k,l,m] = tMeans_input[totalcount]
+                        totalcount += 1
+    
+    return -comparingGMM(zflowDF, tGuessMeans, tCovar , nk_guess)
+    
+
