@@ -1,9 +1,7 @@
 """
 This creates Figure 4.
 """
-import numpy as np
-import xarray as xa
-from scipy.optimize import least_squares
+from scipy.optimize import minimize
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
@@ -32,9 +30,9 @@ def makeFigure():
     rank = 2
     # factors_NNP, factorinfo_NNP = tensor_decomp(tMeans, rank, "NNparafac")
 
-    nk_tMeans_guess = leastsquaresguess(nk, tMeans, maxcluster)
+    nk_tMeans_guess = leastsquaresguess(nk, tMeans)
 
-    optimized = least_squares(maxloglik, nk_tMeans_guess, max_nfev=1, ftol=1e-2, args=(maxcluster, zflowDF, tMeans, tCovar))
+    optimized = minimize(maxloglik, nk_tMeans_guess, method="Nelder-Mead", args=(maxcluster, zflowDF, tMeans, tCovar), options={"disp": True, "maxiter": 1})
 
     print("Optimized Parameters:", optimized)
 
