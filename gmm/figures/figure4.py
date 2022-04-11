@@ -32,9 +32,9 @@ def makeFigure():
     rank = 2
     # factors_NNP, factorinfo_NNP = tensor_decomp(tMeans, rank, "NNparafac")
 
-    nk_tMeans_guess =  leastsquaresguess(nk, tMeans, maxcluster)
+    nk_tMeans_guess = leastsquaresguess(nk, tMeans, maxcluster)
 
-    optimized = least_squares(maxloglik, nk_tMeans_guess,max_nfev = 1, ftol = 1e-2, args=(maxcluster, zflowDF, tMeans, tCovar))
+    optimized = least_squares(maxloglik, nk_tMeans_guess, max_nfev=1, ftol=1e-2, args=(maxcluster, zflowDF, tMeans, tCovar))
 
     print("Optimized Parameters:", optimized)
 

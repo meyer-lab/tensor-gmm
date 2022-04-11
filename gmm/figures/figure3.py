@@ -40,10 +40,6 @@ def makeFigure():
     rank = 5
     factors_NNP, facinfo = tensor_decomp(tMeans, rank, "NNparafac")
 
-    print(factors_NNP)
-    print(facinfo)
-    print(factors_NNP.shape)
-
     for i in range(0, 5):
         heatmap = sns.heatmap(data=factors_NNP[i], ax=ax[i + 1], vmin=0, vmax=1, cmap="Blues")
 
