@@ -12,8 +12,8 @@ def smallDF(fracCells: int):
     flowDF = importflowDF()
     gVars = ["Ligand", "Dose", "Time"]
     # Columns that should be trasformed
-    tCols = ["Foxp3", "CD25", "CD4", "CD45RA"]
-    transCols = ["Foxp3", "CD25", "CD4", "CD45RA", "pSTAT5"]
+    tCols = ["Foxp3", "CD25", "CD45RA", "CD4"]
+    transCols = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 
     flowDF["Ligand"] = flowDF["Ligand"] + "-" + flowDF["Valency"].astype(int).astype(str)
     flowDF.drop(columns=["Valency", "index", "Date"], axis=1, inplace=True)
