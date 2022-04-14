@@ -8,10 +8,7 @@ from ..GMM import cvGMM, probGMM
 
 def test_cvGMM():
     """Stub test."""
-    (
-        dataTwo,
-        _,
-    ) = smallDF(50)
+    dataTwo, _ = smallDF(50)
     gmmDF = cvGMM(dataTwo, 4)
     assert isinstance(gmmDF, pd.DataFrame)
 
