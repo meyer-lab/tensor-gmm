@@ -31,11 +31,12 @@ def smallDF(fracCells: int):
     flowDF.sort_values(by=gVars, inplace=True)
 
     flowDF["Cell"] = np.tile(np.arange(1, fracCells + 1), int(flowDF.shape[0] / fracCells))
-    flowDF = flowDF.drop(["Cell Type"], axis=1)
-    flowDF = flowDF.set_index(["Cell", "Ligand", "Dose", "Time"]).to_xarray()
+    flowDF = flowDF.set_index(["Cell", "Time", "Dose", "Ligand"]).to_xarray()
+    cell_type = flowDF["Cell Type"]
+    flowDF = flowDF.drop_vars(["Cell Type"])
     flowDF = flowDF[transCols].to_array(dim="Marker")
 
-    return flowDF, experimentcells
+    return flowDF, (experimentcells, cell_type)
 
 
 def celltypetonumb(typ):

@@ -13,7 +13,7 @@ def LLscorer(estimator, X, _):
     return np.mean(estimator.score(X))
 
 
-def cvGMM(zflowDF: xa.DataArray, maxcluster: int):
+def cvGMM(zflowDF: xa.DataArray, maxcluster: int, true_types):
     """ Runs CV on GMM model with score and rand score for multiple clusters"""
     zflowDF = zflowDF.copy()
     zflowDF = zflowDF.drop_sel({"Marker": "pSTAT5"})
