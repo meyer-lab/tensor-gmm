@@ -10,7 +10,7 @@ def smallDF(fracCells: int):
     Zscores all markers per experiment but pSTAT5 normalized over all experiments"""
     # fracCells = Amount of cells per experiment
     flowDF = importflowDF()
-    gVars = ["Ligand", "Dose", "Time"]
+    gVars = ["Time", "Dose", "Ligand"]
     # Columns that should be trasformed
     tCols = ["Foxp3", "CD25", "CD45RA", "CD4"]
     transCols = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
@@ -21,6 +21,7 @@ def smallDF(fracCells: int):
     # Data was measured for CD3/CD8/CD56 was not measured for non-Tregs/Thelpers
     # Also drop columns with missing values
     flowDF = flowDF.dropna(subset=["Foxp3"]).dropna(axis=1)
+    experimentcells = flowDF.groupby(by=gVars).size()
     flowDF[tCols] = flowDF.groupby(by=gVars)[tCols].transform(lambda x: x / np.std(x))
     for mark in transCols:
         flowDF = flowDF[flowDF[mark] < flowDF[mark].quantile(.995)]
@@ -28,14 +29,13 @@ def smallDF(fracCells: int):
     flowDF["Cell Type"] = flowDF["Cell Type"].apply(celltypetonumb)
     flowDF["pSTAT5"] /= np.std(flowDF["pSTAT5"])
     flowDF.sort_values(by=gVars, inplace=True)
-    totalcells = flowDF.shape[0]
 
     flowDF["Cell"] = np.tile(np.arange(1, fracCells + 1), int(flowDF.shape[0] / fracCells))
     flowDF = flowDF.drop(["Cell Type"], axis=1)
     flowDF = flowDF.set_index(["Cell", "Ligand", "Dose", "Time"]).to_xarray()
     flowDF = flowDF[transCols].to_array(dim="Marker")
 
-    return flowDF, totalcells
+    return flowDF, experimentcells
 
 
 def celltypetonumb(typ):
