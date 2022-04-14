@@ -17,7 +17,7 @@ def cvGMM(zflowDF: xa.DataArray, maxcluster: int, true_types):
     """ Runs CV on GMM model with score and rand score for multiple clusters"""
     zflowDF = zflowDF.copy()
     zflowDF = zflowDF.drop_sel({"Marker": "pSTAT5"})
-    X = np.reshape(zflowDF.to_numpy(), (-1, zflowDF.shape[4]))  # Creating matrix that will be used in GMM model
+    X = np.reshape(zflowDF.to_numpy(), (-1, zflowDF.shape[0]))  # Creating matrix that will be used in GMM model
 
     cv = KFold(10, shuffle=True)
     GMM = GaussianMixture(covariance_type="full", tol=1e-6, max_iter=5000)
@@ -25,7 +25,7 @@ def cvGMM(zflowDF: xa.DataArray, maxcluster: int, true_types):
     scoring = {"LL": LLscorer, "rand": "rand_score"}
     grid = {'n_components': np.arange(1, maxcluster)}
     grid_search = GridSearchCV(GMM, param_grid=grid, scoring=scoring, cv=cv, refit=False, n_jobs=-1)
-    grid_search.fit(X, zflowDF["Cell Type"].values)
+    grid_search.fit(X, true_types.values.flatten())
     results = grid_search.cv_results_
 
     return pd.DataFrame({"Cluster": results["param_n_components"],
@@ -37,8 +37,7 @@ def probGMM(zflowDF, n_clusters: int):
     """Use the GMM responsibilities matrix to develop means and covariances for each experimental condition."""
     # Fit the GMM with the full dataset
     # Creating matrix that will be used in GMM model
-    print(zflowDF)
-    X = np.reshape(zflowDF.to_numpy(), (-1, len(markerslist)))
+    X = np.reshape(zflowDF.to_numpy(), (-1, zflowDF.shape[0]))
     GMM = GaussianMixture(
         n_components=n_clusters,
         covariance_type="full",
@@ -48,52 +47,28 @@ def probGMM(zflowDF, n_clusters: int):
     _, log_resp = GMM._estimate_log_prob_resp(X)  # Get the responsibilities
 
     # Reshape into tensor form for easy indexing
-    log_resp = np.reshape(log_resp, (zflowDF.shape[0], zflowDF.shape[1], zflowDF.shape[2], zflowDF.shape[3], -1))
+    log_resp = np.reshape(log_resp, (-1, zflowDF.shape[1], zflowDF.shape[2], zflowDF.shape[3], zflowDF.shape[4]))
 
+    times = zflowDF.coords["Time"]
     doses = zflowDF.coords["Dose"]
     ligand = zflowDF.coords["Ligand"]
-    times = zflowDF.coords["Time"]
     clustArray = np.arange(1, n_clusters + 1)
 
     # Setup storage
-    nk = xa.DataArray(np.full((n_clusters, len(ligand), len(doses), len(times)), np.nan), coords={
-                      "Cluster": clustArray, "Ligand": ligand, "Dose": doses, "Time": times})
-    means = xa.DataArray(
-        np.full(
-            (n_clusters,
-             len(markerslist),
-             len(ligand),
-             len(doses),
-             len(times)),
-            np.nan),
-        coords={
-            "Cluster": clustArray,
-            "Markers": markerslist,
-            "Ligand": ligand,
-            "Dose": doses,
-            "Time": times})
-    covariances = xa.DataArray(
-        np.full(
-            (n_clusters,
-             len(markerslist),
-             len(markerslist),
-             len(ligand),
-             len(doses),
-             len(times)),
-            np.nan),
-        coords={
-            "Cluster": clustArray,
-            "Marker1": markerslist,
-            "Marker2": markerslist,
-            "Ligand": ligand,
-            "Dose": doses,
-            "Time": times})
+    nk = xa.DataArray(np.full((n_clusters, len(times), len(doses), len(ligand)), np.nan), coords={
+                      "Cluster": clustArray, "Time": times, "Dose": doses, "Ligand": ligand})
+    means = xa.DataArray(np.full((n_clusters,len(markerslist),len(times), len(doses), len(ligand)),
+            np.nan),coords={"Cluster": clustArray,"Markers": markerslist, "Time": times, "Dose": doses, "Ligand": ligand})
+    covariances =  xa.DataArray(np.full((n_clusters,len(markerslist), len(markerslist),len(times), len(doses), 
+                   len(ligand)), np.nan),coords={"Cluster": clustArray,"Marker1": markerslist, "Marker2": markerslist,
+                   "Time": times, "Dose": doses, "Ligand": ligand})
+      
 
-    for i in range(len(ligand)):
+    for i in range(len(times)):
         for j in range(len(doses)):
-            for k in range(len(times)):
+            for k in range(len(ligand)):
                 output = _estimate_gaussian_parameters(np.transpose(zflowDF[:, :, i, j, k].values),
-                                                       np.exp(log_resp[i, j, k, :]), 1e-6, "full")
+                                                       np.exp(np.transpose(log_resp[:,:,i,j,k])), 1e-6, "full")
 
                 nk[:, i, j, k] = output[0]
                 means[:, :, i, j, k] = output[1]
