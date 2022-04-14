@@ -1,3 +1,4 @@
+import zlib
 import pandas as pd
 import numpy as np
 import xarray as xa
@@ -33,21 +34,23 @@ def cvGMM(zflowDF, maxcluster: int):
                          "rand_score": results["mean_test_rand"]})
 
 
-def probGMM(zflowDF, n_clusters: int):
+def probGMM(zflowDF, totalcells, n_clusters: int, fracCells):
     """Use the GMM responsibilities matrix to develop means and covariances for each experimental condition."""
     # Fit the GMM with the full dataset
+    # Creating matrix that will be used in GMM model
+    X = np.reshape(zflowDF.to_numpy(), (totalcells, len(markerslist)))
     GMM = GaussianMixture(
         n_components=n_clusters,
         covariance_type="full",
         max_iter=5000,
         verbose=20)
-    GMM.fit(zflowDF[markerslist])
-    _, log_resp = GMM._estimate_log_prob_resp(zflowDF[markerslist])  # Get the responsibilities
-    assert log_resp.shape[0] == zflowDF.shape[0]  # Check shapes
+    GMM.fit(X)
+    _, log_resp = GMM._estimate_log_prob_resp(X)  # Get the responsibilities
+    assert log_resp.shape[0] == totalcells  # Check shapes
 
-    doses = zflowDF["Dose"].unique()
-    ligand = zflowDF["Ligand"].unique()
-    times = zflowDF["Time"].unique()
+    doses = zflowDF.coords["Dose"]
+    ligand = zflowDF.coords["Ligand"]
+    times = zflowDF.coords["Time"]
     clustArray = np.arange(1, n_clusters + 1)
 
     # Setup storage
@@ -85,16 +88,17 @@ def probGMM(zflowDF, n_clusters: int):
             "Time": times})
 
     # Loop over separate conditions
-    for name, cond_cells in zflowDF.groupby(["Ligand", "Dose", "Time"]):
-        idxx = (
-            zflowDF["Ligand"] == name[0]) & (
-            zflowDF["Dose"] == name[1]) & (
-            zflowDF["Time"] == name[2])
-        output = _estimate_gaussian_parameters(
-            cond_cells[markerslist].values, np.exp(log_resp[idxx, :]), 1e-6, "full")
+    conditionnumb = 0
 
-        nk.loc[:, name[0], name[1], name[2]] = output[0]
-        means.loc[:, :, name[0], name[1], name[2]] = output[1]
-        covariances.loc[:, :, :, name[0], name[1], name[2]] = output[2]
+    for i in range(len(ligand)):
+        for j in range(len(doses)):
+            for k in range(len(times)):
+                output = _estimate_gaussian_parameters(np.transpose(zflowDF[:, :, i, j, k].values),
+                                                       np.exp(log_resp[fracCells * conditionnumb:fracCells * (conditionnumb + 1), :]), 1e-6, "full")
+                conditionnumb += 1
+
+                nk[:, i, j, k] = output[0]
+                means[:, :, i, j, k] = output[1]
+                covariances[:, :, :, i, j, k] = output[2]
 
     return nk, means, covariances

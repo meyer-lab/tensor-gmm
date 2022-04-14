@@ -5,14 +5,14 @@ import pyarrow.parquet as pq
 import xarray as xa
 
 
-def smallDF(fracCells,xArray = False):
+def smallDF(fracCells):
     """Creates DF of specific # of experiments
     Zscores all markers per experiment but pSTAT5 normalized over all experiments"""
     # fracCells = Amount of cells per experiment
     flowDF = importflowDF()
-    gVars = [ "Ligand", "Dose", "Time"]
+    gVars = ["Ligand", "Dose", "Time"]
     # Columns that should be trasformed
-    tCols = ["Foxp3", "CD25",  "CD4", "CD45RA"]
+    tCols = ["Foxp3", "CD25", "CD4", "CD45RA"]
     transCols = ["Foxp3", "CD25", "CD4", "CD45RA", "pSTAT5"]
 
     flowDF["Ligand"] = flowDF["Ligand"] + "-" + flowDF["Valency"].astype(int).astype(str)
@@ -28,16 +28,14 @@ def smallDF(fracCells,xArray = False):
     flowDF["Cell Type"] = flowDF["Cell Type"].apply(celltypetonumb)
     flowDF["pSTAT5"] /= np.std(flowDF["pSTAT5"])
     flowDF.sort_values(by=gVars, inplace=True)
-    experimentcells = flowDF.shape
+    totalcells = flowDF.shape[0]
 
-    if xArray == True:
-        tensorDF = flowDF.copy()
-        tensorDF["Cell"] = np.tile(np.arange(1, fracCells + 1),int(tensorDF.shape[0]/fracCells))
-        tensorDF = tensorDF.drop(["Cell Type"], axis=1)
-        tensorDF = tensorDF.set_index(["Cell","Time", "Ligand","Dose"]).to_xarray()
-        tensorDF = tensorDF[transCols].to_array(dim="Marker")
-  
-    return flowDF, experimentcells, tensorDF
+    flowDF["Cell"] = np.tile(np.arange(1, fracCells + 1), int(flowDF.shape[0] / fracCells))
+    flowDF = flowDF.drop(["Cell Type"], axis=1)
+    flowDF = flowDF.set_index(["Cell", "Ligand", "Dose", "Time"]).to_xarray()
+    flowDF = flowDF[transCols].to_array(dim="Marker")
+
+    return flowDF, totalcells
 
 
 def celltypetonumb(typ):
