@@ -51,7 +51,7 @@ def tensor_R2X(tensor, maxrank, tensortype):
     return rank, varexpl
 
 
-def comparingGMM(zflowDF, tMeans: xa.DataArray, tCovar: xa.DataArray, nk: np.ndarray):
+def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tCovar: xa.DataArray, nk: np.ndarray):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
     assert nk.ndim == 1
     nk /= np.sum(nk)
