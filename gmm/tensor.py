@@ -55,9 +55,8 @@ def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tCovar: xa.DataArr
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
     assert nk.ndim == 1
     nk /= np.sum(nk)
-    # conditions = zflowDF.groupby(["Ligand", "Dose", "Time"])
-    loglik = 0.0
     conditions = zflowDF.groupby(["Ligand", "Dose", "Time"])
+    loglik = 0.0
 
     for name, cond_cells in conditions:
         # Means of GMM
