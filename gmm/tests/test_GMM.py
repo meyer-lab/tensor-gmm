@@ -1,13 +1,12 @@
 """
 Test the data import.
 """
-import pytest
 import pandas as pd
 from ..imports import smallDF
 from ..GMM import cvGMM, probGMM
 
 
-def test_import():
+def test_cvGMM():
     """Stub test."""
     (
         dataTwo,

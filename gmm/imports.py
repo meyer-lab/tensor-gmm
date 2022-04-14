@@ -5,7 +5,7 @@ import pyarrow.parquet as pq
 import xarray as xa
 
 
-def smallDF(fracCells):
+def smallDF(fracCells: int):
     """Creates DF of specific # of experiments
     Zscores all markers per experiment but pSTAT5 normalized over all experiments"""
     # fracCells = Amount of cells per experiment

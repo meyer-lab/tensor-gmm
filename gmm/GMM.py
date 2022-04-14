@@ -1,4 +1,3 @@
-import zlib
 import pandas as pd
 import numpy as np
 import xarray as xa
@@ -14,11 +13,11 @@ def LLscorer(estimator, X, _):
     return np.mean(estimator.score(X))
 
 
-def cvGMM(zflowDF, maxcluster: int):
+def cvGMM(zflowDF: xa.DataArray, maxcluster: int):
     """ Runs CV on GMM model with score and rand score for multiple clusters"""
-    X = zflowDF.drop(
-        columns=["Cell Type", "pSTAT5", "Time", "Dose", "Ligand"]
-    )  # Creating matrix that will be used in GMM model
+    zflowDF = zflowDF.copy()
+    zflowDF = zflowDF.drop_sel({"Marker": "pSTAT5"})
+    X = np.reshape(zflowDF.to_numpy(), (-1, zflowDF.shape[4]))  # Creating matrix that will be used in GMM model
 
     cv = KFold(10, shuffle=True)
     GMM = GaussianMixture(covariance_type="full", tol=1e-6, max_iter=5000)
@@ -34,11 +33,12 @@ def cvGMM(zflowDF, maxcluster: int):
                          "rand_score": results["mean_test_rand"]})
 
 
-def probGMM(zflowDF, totalcells, n_clusters: int, fracCells):
+def probGMM(zflowDF, n_clusters: int):
     """Use the GMM responsibilities matrix to develop means and covariances for each experimental condition."""
     # Fit the GMM with the full dataset
     # Creating matrix that will be used in GMM model
-    X = np.reshape(zflowDF.to_numpy(), (totalcells, len(markerslist)))
+    print(zflowDF)
+    X = np.reshape(zflowDF.to_numpy(), (-1, len(markerslist)))
     GMM = GaussianMixture(
         n_components=n_clusters,
         covariance_type="full",
@@ -46,7 +46,9 @@ def probGMM(zflowDF, totalcells, n_clusters: int, fracCells):
         verbose=20)
     GMM.fit(X)
     _, log_resp = GMM._estimate_log_prob_resp(X)  # Get the responsibilities
-    assert log_resp.shape[0] == totalcells  # Check shapes
+
+    # Reshape into tensor form for easy indexing
+    log_resp = np.reshape(log_resp, (zflowDF.shape[0], zflowDF.shape[1], zflowDF.shape[2], zflowDF.shape[3], -1))
 
     doses = zflowDF.coords["Dose"]
     ligand = zflowDF.coords["Ligand"]
@@ -87,15 +89,11 @@ def probGMM(zflowDF, totalcells, n_clusters: int, fracCells):
             "Dose": doses,
             "Time": times})
 
-    # Loop over separate conditions
-    conditionnumb = 0
-
     for i in range(len(ligand)):
         for j in range(len(doses)):
             for k in range(len(times)):
                 output = _estimate_gaussian_parameters(np.transpose(zflowDF[:, :, i, j, k].values),
-                                                       np.exp(log_resp[fracCells * conditionnumb:fracCells * (conditionnumb + 1), :]), 1e-6, "full")
-                conditionnumb += 1
+                                                       np.exp(log_resp[i, j, k, :]), 1e-6, "full")
 
                 nk[:, i, j, k] = output[0]
                 means[:, :, i, j, k] = output[1]
