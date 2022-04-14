@@ -1,10 +1,11 @@
 """
 This creates Figure 4.
 """
+import numpy as np
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp
+from ..tensor import tensor_decomp, comparingGMM
 
 
 def makeFigure():
@@ -20,13 +21,16 @@ def makeFigure():
     zflowTensor, _ = smallDF(cellperexp)
 
     # probGM(DF,maximum cluster,cellsperexperiment): [nk, means, covar] while using estimation gaussian parameters
-    maxcluster = 2
+    maxcluster = 4
     nk, tMeans, tCovar = probGMM(zflowTensor, maxcluster)
 
     # tensor_decomp(tensor means, rank, type of decomposition):
     # [DF,tensorfactors/weights] creates DF of factors for different
     # conditions and output of decomposition
-    rank = 2
-    factors_NNP, factorinfo_NNP = tensor_decomp(tMeans, rank, "NNparafac")
+    rank = 5
+    _, _ = tensor_decomp(tMeans, rank, "NNparafac")
+
+    nkCommon = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))  # nk is shared across conditions
+    _ = comparingGMM(zflowTensor, tMeans, tCovar, nkCommon)
 
     return f
