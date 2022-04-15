@@ -5,7 +5,7 @@ import numpy as np
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp
+from ..tensor import tensor_decomp, comparingGMM
 
 
 def makeFigure():
@@ -31,6 +31,7 @@ def makeFigure():
     _, _ = tensor_decomp(tMeans, rank, "NNparafac")
 
     nkCommon = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))  # nk is shared across conditions
-    # _ = comparingGMM(zflowTensor, tMeans, tCovar, nkCommon)
+    maxloglik = comparingGMM(zflowTensor, tMeans, tCovar, nkCommon)
+    print(maxloglik)
 
     return f

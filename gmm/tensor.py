@@ -51,33 +51,33 @@ def tensor_R2X(tensor, maxrank, tensortype):
     return rank, varexpl
 
 
-# def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tCovar: xa.DataArray, nk: np.ndarray):
-#     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
-#     assert nk.ndim == 1
-#     nk /= np.sum(nk)
-#     conditions = zflowDF.groupby(["Ligand", "Dose", "Time"])
-#     loglik = 0.0
 
-#     for name, cond_cells in conditions:
-#         # Means of GMM
-#         flow_mean = tMeans.loc[:, markerslist, name[0], name[1], name[2]]
-#         flow_covar = tCovar.loc[:, markerslist, markerslist, name[0], name[1], name[2]]
-#         assert flow_mean.shape[0] == flow_covar.shape[0]  # Rows are clusters
-#         assert flow_mean.size > 0
-#         assert flow_covar.size > 0
-#         assert np.all(np.isfinite(flow_mean))
-#         assert np.all(np.isfinite(flow_covar))
+def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tCovar: xa.DataArray, nk: np.ndarray):
+    """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
+    assert nk.ndim == 1
+    nk /= np.sum(nk)
+    loglik = 0.0
 
-#         X = cond_cells[markerslist].to_numpy()
+    times = zflowDF.coords["Time"]
+    doses = zflowDF.coords["Dose"]
+    ligand = zflowDF.coords["Ligand"]
 
-#         gmm = GaussianMixture(
-#             n_components=nk.size,
-#             covariance_type="full",
-#             means_init=flow_mean.to_numpy(),
-#             weights_init=nk)
-#         gmm._initialize(X, np.ones((X.shape[0], nk.size)))
-#         gmm.precisions_cholesky_ = _compute_precision_cholesky(flow_covar, "full")
+    for i in range(len(times)):
+        for j in range(len(doses)):
+            for k in range(len(ligand)):
+                flow_mean = tMeans[:, :, i,j,k].to_numpy()
+                flow_covar = tCovar[:, :, :,i,j,k].to_numpy()
+                assert flow_mean.shape[0] == flow_covar.shape[0]  # Rows are clusters
+                assert flow_mean.shape[1] == flow_covar.shape[1]  # Same markerslist size
+                assert flow_mean.size > 0
+                assert flow_covar.size > 0
+                assert np.all(np.isfinite(flow_mean))
+                assert np.all(np.isfinite(flow_covar))
+                X = zflowDF[:,:,i,j,k].to_numpy() # Marker X Cells
+                gmm = GaussianMixture(n_components=nk.size, covariance_type="full", means_init=flow_mean,
+                        weights_init=nk)
+                gmm._initialize(np.transpose(X), np.ones((X.shape[1], nk.size)))
+                gmm.precisions_cholesky_ = _compute_precision_cholesky(flow_covar, "full")
+                loglik += np.sum(gmm.score_samples(np.transpose(X)))
 
-#         loglik += np.sum(gmm.score_samples(X))
-
-#     return loglik
+    return loglik
