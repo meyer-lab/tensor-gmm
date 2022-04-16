@@ -47,28 +47,29 @@ def probGMM(zflowDF, n_clusters: int):
     _, log_resp = GMM._estimate_log_prob_resp(X)  # Get the responsibilities
 
     # Reshape into tensor form for easy indexing
+    log_resp = np.exp(log_resp)
     log_resp = np.reshape(log_resp, (-1, zflowDF.shape[1], zflowDF.shape[2], zflowDF.shape[3], zflowDF.shape[4]))
 
     times = zflowDF.coords["Time"]
     doses = zflowDF.coords["Dose"]
     ligand = zflowDF.coords["Ligand"]
     clustArray = np.arange(1, n_clusters + 1)
+    commonSize = (len(times), len(doses), len(ligand))
+    commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
 
     # Setup storage
-    nk = xa.DataArray(np.full((n_clusters, len(times), len(doses), len(ligand)), np.nan), coords={
-                      "Cluster": clustArray, "Time": times, "Dose": doses, "Ligand": ligand})
-    means = xa.DataArray(np.full((n_clusters,len(markerslist),len(times), len(doses), len(ligand)),
-            np.nan),coords={"Cluster": clustArray,"Markers": markerslist, "Time": times, "Dose": doses, "Ligand": ligand})
-    covariances =  xa.DataArray(np.full((n_clusters,len(markerslist), len(markerslist),len(times), len(doses), 
-                   len(ligand)), np.nan),coords={"Cluster": clustArray,"Marker1": markerslist, "Marker2": markerslist,
-                   "Time": times, "Dose": doses, "Ligand": ligand})
-      
+    nk = xa.DataArray(np.full((n_clusters, *commonSize), np.nan),
+                      coords={"Cluster": clustArray, **commonDims})
+    means = xa.DataArray(np.full((n_clusters, len(markerslist), *commonSize), np.nan),
+                         coords={"Cluster": clustArray, "Markers": markerslist, **commonDims})
+    covariances = xa.DataArray(np.full((n_clusters, len(markerslist), len(markerslist), *commonSize), np.nan),
+                               coords={"Cluster": clustArray, "Marker1": markerslist, "Marker2": markerslist, **commonDims})
 
-    for i in range(len(times)):
-        for j in range(len(doses)):
-            for k in range(len(ligand)):
+    for i in range(nk.shape[1]):
+        for j in range(nk.shape[2]):
+            for k in range(nk.shape[3]):
                 output = _estimate_gaussian_parameters(np.transpose(zflowDF[:, :, i, j, k].values),
-                                                       np.exp(np.transpose(log_resp[:,:,i,j,k])), 1e-6, "full")
+                                                       np.transpose(log_resp[:, :, i, j, k]), 1e-6, "full")
 
                 nk[:, i, j, k] = output[0]
                 means[:, :, i, j, k] = output[1]
