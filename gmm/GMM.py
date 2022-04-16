@@ -65,14 +65,15 @@ def probGMM(zflowDF, n_clusters: int):
     covariances = xa.DataArray(np.full((n_clusters, len(markerslist), len(markerslist), *commonSize), np.nan),
                                coords={"Cluster": clustArray, "Marker1": markerslist, "Marker2": markerslist, **commonDims})
 
-    for i in range(nk.shape[1]):
-        for j in range(nk.shape[2]):
-            for k in range(nk.shape[3]):
-                output = _estimate_gaussian_parameters(np.transpose(zflowDF[:, :, i, j, k].values),
-                                                       np.transpose(log_resp[:, :, i, j, k]), 1e-6, "full")
+    it = np.nditer(nk[0, :, :, :], flags=['multi_index', 'refs_ok'])
+    for _ in it:
+        i, j, k = it.multi_index
 
-                nk[:, i, j, k] = output[0]
-                means[:, :, i, j, k] = output[1]
-                covariances[:, :, :, i, j, k] = output[2]
+        output = _estimate_gaussian_parameters(np.transpose(zflowDF[:, :, i, j, k].values),
+                                               np.transpose(log_resp[:, :, i, j, k]), 1e-6, "full")
+
+        nk[:, i, j, k] = output[0]
+        means[:, :, i, j, k] = output[1]
+        covariances[:, :, :, i, j, k] = output[2]
 
     return nk, means, covariances
