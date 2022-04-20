@@ -8,7 +8,7 @@ from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky
 from tensorly.decomposition import non_negative_parafac, parafac
 from tensorly.cp_tensor import cp_normalize
 
-markerslist = ["Foxp3", "CD25", "CD4", "CD45RA", "pSTAT5"]
+markerslist = ["Foxp3", "CD25","CD45RA", "CD4", "pSTAT5"]
 
 
 def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
@@ -51,7 +51,7 @@ def tensor_R2X(tensor, maxrank, tensortype):
     return rank, varexpl
 
 
-def comparingGMM(zflowDF: pd.DataFrame, tMeans: xa.DataArray, tCovar: xa.DataArray, nk: np.ndarray):
+def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tCovar: xa.DataArray, nk: np.ndarray):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
     assert nk.ndim == 1
     nk /= np.sum(nk)

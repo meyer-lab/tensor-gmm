@@ -28,7 +28,7 @@ def makeFigure():
     # [DF,tensorfactors/weights] creates DF of factors for different
     # conditions and output of decomposition
     rank = 5
-    factors_NNP, factorinfo_NNP = tensor_decomp(tMeans, rank, "NNparafac")
+    _, _ = tensor_decomp(tMeans, rank, "NNparafac")
 
     nkCommon = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))  # nk is shared across conditions
     total_loglik = comparingGMM(zflowDF, tMeans, tCovar, nkCommon)

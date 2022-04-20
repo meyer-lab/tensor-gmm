@@ -13,7 +13,7 @@ def LLscorer(estimator, X, _):
     return np.mean(estimator.score(X))
 
 
-def cvGMM(zflowDF, maxcluster: int):
+def cvGMM(zflowDF: xa.DataArray, maxcluster: int):
     """ Runs CV on GMM model with score and rand score for multiple clusters"""
     X = zflowDF.drop(
         columns=["Cell Type", "pSTAT5", "Time", "Dose", "Ligand"]
@@ -33,7 +33,7 @@ def cvGMM(zflowDF, maxcluster: int):
                          "rand_score": results["mean_test_rand"]})
 
 
-def probGMM(zflowDF, n_clusters: int):
+def probGMM(zflowDF: xa.DataArray, n_clusters: int):
     """Use the GMM responsibilities matrix to develop means and covariances for each experimental condition."""
     # Fit the GMM with the full dataset
     GMM = GaussianMixture(
