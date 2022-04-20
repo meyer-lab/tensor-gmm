@@ -57,7 +57,7 @@ def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tCovar: xa.DataArr
     nk /= np.sum(nk)
     loglik = 0.0
 
-    it = np.nditer(nk[0, :, :, :], flags=['multi_index', 'refs_ok'])
+    it = np.nditer(tMeans[0, 0, :, :, :], flags=['multi_index', 'refs_ok'])
     for _ in it:  # Loop over indices
         i, j, k = it.multi_index
         X = zflowDF[:, :, i, j, k].to_numpy()  # Marker X Cells
