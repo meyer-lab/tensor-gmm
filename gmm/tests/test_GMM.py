@@ -1,19 +1,15 @@
 """
 Test the data import.
 """
-import pytest
 import pandas as pd
 from ..imports import smallDF
 from ..GMM import cvGMM, probGMM
 
 
-def test_import():
+def test_cvGMM():
     """Stub test."""
-    (
-        dataTwo,
-        _,
-    ) = smallDF(50)
-    gmmDF = cvGMM(dataTwo, 4)
+    dataTwo, other = smallDF(50)
+    gmmDF = cvGMM(dataTwo, 4, other[1])
     assert isinstance(gmmDF, pd.DataFrame)
 
 
