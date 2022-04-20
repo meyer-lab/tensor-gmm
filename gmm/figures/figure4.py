@@ -33,7 +33,7 @@ def makeFigure():
 
     nk_tMeans_guess = leastsquaresguess(nk, tMeans)
 
-    optimized = minimize(maxloglik, nk_tMeans_guess, method="Nelder-Mead", args=(maxcluster, zflowDF, tMeans, tCovar), options={"disp": True, "maxiter": 1})
+    optimized = minimize(maxloglik, nk_tMeans_guess, method="Nelder-Mead", args=(maxcluster, zflowTensor, tMeans, tCovar), options={"disp": True, "maxiter": 1})
 
     print("Optimized Parameters:", optimized)
 
