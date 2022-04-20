@@ -17,7 +17,9 @@ def cvGMM(zflowDF: xa.DataArray, maxcluster: int, true_types):
     """ Runs CV on GMM model with score and rand score for multiple clusters"""
     zflowDF = zflowDF.copy()
     zflowDF = zflowDF.drop_sel({"Marker": "pSTAT5"})
-    X = np.reshape(zflowDF.to_numpy(), (-1, zflowDF.shape[0]))  # Creating matrix that will be used in GMM model
+    # Creating matrix that will be used in GMM model
+    X = np.reshape(zflowDF.stack(z=("Ligand","Dose","Time","Cell","Marker")).to_numpy(), (-1, zflowDF.shape[0]))
+    true_types = np.reshape(true_types.stack(z=("Ligand","Dose","Time","Cell")).to_numpy(), (1,-1))
 
     cv = KFold(10, shuffle=True)
     GMM = GaussianMixture(covariance_type="full", tol=1e-6, max_iter=5000)
@@ -25,7 +27,7 @@ def cvGMM(zflowDF: xa.DataArray, maxcluster: int, true_types):
     scoring = {"LL": LLscorer, "rand": "rand_score"}
     grid = {'n_components': np.arange(1, maxcluster)}
     grid_search = GridSearchCV(GMM, param_grid=grid, scoring=scoring, cv=cv, refit=False, n_jobs=-1)
-    grid_search.fit(X, true_types.values.flatten())
+    grid_search.fit(X, true_types.flatten())
     results = grid_search.cv_results_
 
     return pd.DataFrame({"Cluster": results["param_n_components"],
@@ -37,7 +39,7 @@ def probGMM(zflowDF, n_clusters: int):
     """Use the GMM responsibilities matrix to develop means and covariances for each experimental condition."""
     # Fit the GMM with the full dataset
     # Creating matrix that will be used in GMM model
-    X = np.reshape(zflowDF.to_numpy(), (-1, zflowDF.shape[0]))
+    X = np.reshape(zflowDF.stack(z=("Ligand","Dose","Time","Cell","Marker")).to_numpy(), (-1, zflowDF.shape[0]))
     GMM = GaussianMixture(
         n_components=n_clusters,
         covariance_type="full",
