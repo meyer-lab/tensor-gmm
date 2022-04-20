@@ -13,13 +13,13 @@ def LLscorer(estimator, X, _):
     return np.mean(estimator.score(X))
 
 
-def cvGMM(zflowDF: xa.DataArray, maxcluster: int, true_types):
+def cvGMM(zflowDF: xa.DataArray, maxcluster: int, true_types: xa.DataArray):
     """ Runs CV on GMM model with score and rand score for multiple clusters"""
     zflowDF = zflowDF.copy()
     zflowDF = zflowDF.drop_sel({"Marker": "pSTAT5"})
     # Creating matrix that will be used in GMM model
-    X = np.reshape(zflowDF.stack(z=("Ligand","Dose","Time","Cell","Marker")).to_numpy(), (-1, zflowDF.shape[0]))
-    true_types = np.reshape(true_types.stack(z=("Ligand","Dose","Time","Cell")).to_numpy(), (1,-1))
+    X = zflowDF.stack(z=("Ligand", "Dose", "Time", "Cell")).to_numpy().T
+    true_types = true_types.stack(z=("Ligand", "Dose", "Time", "Cell")).to_numpy().T
 
     cv = KFold(10, shuffle=True)
     GMM = GaussianMixture(covariance_type="full", tol=1e-6, max_iter=5000)
@@ -35,22 +35,19 @@ def cvGMM(zflowDF: xa.DataArray, maxcluster: int, true_types):
                          "rand_score": results["mean_test_rand"]})
 
 
-def probGMM(zflowDF, n_clusters: int):
+def probGMM(zflowDF: xa.DataArray, n_clusters: int):
     """Use the GMM responsibilities matrix to develop means and covariances for each experimental condition."""
     # Fit the GMM with the full dataset
     # Creating matrix that will be used in GMM model
-    X = np.reshape(zflowDF.stack(z=("Ligand","Dose","Time","Cell","Marker")).to_numpy(), (-1, zflowDF.shape[0]))
+    Xxa = zflowDF.stack(z=("Ligand", "Dose", "Time", "Cell")).transpose()
+    X = Xxa.to_numpy()
     GMM = GaussianMixture(
         n_components=n_clusters,
         covariance_type="full",
         max_iter=5000,
         verbose=20)
     GMM.fit(X)
-    _, log_resp = GMM._estimate_log_prob_resp(X)  # Get the responsibilities
-
-    # Reshape into tensor form for easy indexing
-    log_resp = np.exp(log_resp)
-    log_resp = np.reshape(log_resp, (-1, zflowDF.shape[1], zflowDF.shape[2], zflowDF.shape[3], zflowDF.shape[4]))
+    log_resp = np.exp(GMM._estimate_log_prob_resp(X)[1])  # Get the responsibilities
 
     times = zflowDF.coords["Time"]
     doses = zflowDF.coords["Dose"]
@@ -60,6 +57,9 @@ def probGMM(zflowDF, n_clusters: int):
     commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
 
     # Setup storage
+    log_resp = xa.DataArray(log_resp, coords={"z": Xxa.coords["z"], "Cluster": clustArray}, dims=["z", "Cluster"])
+    log_resp = log_resp.unstack()
+
     nk = xa.DataArray(np.full((n_clusters, *commonSize), np.nan),
                       coords={"Cluster": clustArray, **commonDims})
     means = xa.DataArray(np.full((n_clusters, len(markerslist), *commonSize), np.nan),
@@ -72,7 +72,7 @@ def probGMM(zflowDF, n_clusters: int):
         i, j, k = it.multi_index
 
         output = _estimate_gaussian_parameters(np.transpose(zflowDF[:, :, i, j, k].values),
-                                               np.transpose(log_resp[:, :, i, j, k]), 1e-6, "full")
+                                               np.transpose(log_resp[:, k, j, i, :].values), 1e-6, "full")
 
         nk[:, i, j, k] = output[0]
         means[:, :, i, j, k] = output[1]

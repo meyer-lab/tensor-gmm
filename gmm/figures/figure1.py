@@ -1,7 +1,7 @@
 """
 This creates Figure 1.
 """
-import numpy as np 
+import numpy as np
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import cvGMM
@@ -36,7 +36,5 @@ def makeFigure():
     ylabel = "Score"
     ax[1].set(xlabel=xlabel, ylabel=ylabel)
     ax[2].set(xlabel=xlabel, ylabel=ylabel)
-
-
 
     return f
