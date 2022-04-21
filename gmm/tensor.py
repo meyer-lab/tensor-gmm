@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import tensorly as tl
 import xarray as xa
-from sklearn.mixture import GaussianMixture
+from scipy.special import logsumexp
 
 from tensorly.decomposition import non_negative_parafac, parafac
 from tensorly.cp_tensor import cp_normalize
@@ -54,26 +54,34 @@ def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tPrecision: xa.Dat
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
     assert nk.ndim == 1
     nk /= np.sum(nk)
-    loglik = 0.0
+    loglik = logsumexp(np.log(nk)) * tMeans.shape[2] * tMeans.shape[3] * tMeans.shape[4]
+    normTerm = n_features * np.log(2 * np.pi)
 
     tMeans = tMeans.to_numpy()
     tPrecision = tPrecision.to_numpy()
     X = zflowDF.to_numpy()
 
+    Xp = np.einsum("jiklm,njoklm->nioklm", X, tPrecision)
+    mp = np.einsum("ijklm,ijoklm->ioklm", tMeans, tPrecision)
+    diff = np.square(Xp - mp[:, np.newaxis, :, :, :, :])
+    n_features = mp.shape[1]
+
     it = np.nditer(tMeans[0, 0, :, :, :], flags=['multi_index', 'refs_ok'])
     for _ in it:  # Loop over indices
         i, j, k = it.multi_index
 
-        Xcur = np.transpose(X[:, :, i, j, k])
+        precisions_chol = tPrecision[:, :, :, i, j, k]
 
-        if np.all(np.isnan(X)):  # Skip if there's no data
-            continue
+        # The determinant of the precision matrix from the Cholesky decomposition
+        # corresponds to the negative half of the determinant of the full precision matrix.
+        # In short: det(precision_chol) = - det(precision) / 2
+        log_det = np.sum(np.log(precisions_chol.reshape(mp.shape[0], -1)[:, :: n_features + 1]), 1)
 
-        gmm = GaussianMixture(n_components=nk.size, covariance_type="full", means_init=tMeans[:, :, i, j, k],
-                              weights_init=nk)
-        gmm._initialize(Xcur, np.ones((X.shape[1], nk.size)))
-        gmm.precisions_cholesky_ = tPrecision[:, :, :, i, j, k]
-        loglik += np.sum(gmm.score_samples(Xcur))
+        log_prob = np.sum(diff[:, :, :, i, j, k], axis=2).T
+
+        # Since we are using the precision of the Cholesky decomposition,
+        # `- 0.5 * log_det_precision` becomes `+ log_det_precision_chol`
+        loglik += logsumexp(-0.5 * (normTerm + log_prob) + log_det)
 
     return loglik
 
