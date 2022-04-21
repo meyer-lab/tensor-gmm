@@ -1,12 +1,11 @@
 """
 This creates Figure 4.
 """
-from pytest import TempdirFactory
 from scipy.optimize import minimize
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, maxloglik, leastsquaresguess, markerslist, cp_to_vector, vector_to_cp
+from ..tensor import tensor_decomp, maxloglik, leastsquaresguess, cp_to_vector, vector_to_cp
 
 
 def makeFigure():
