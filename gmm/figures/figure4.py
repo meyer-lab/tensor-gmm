@@ -1,11 +1,12 @@
 """
 This creates Figure 4.
 """
+from pytest import TempdirFactory
 from scipy.optimize import minimize
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, maxloglik, leastsquaresguess
+from ..tensor import tensor_decomp, maxloglik, leastsquaresguess, markerslist, cp_to_vector, vector_to_cp
 
 
 def makeFigure():
@@ -29,7 +30,13 @@ def makeFigure():
     # conditions and output of decomposition
 
     rank = 2
-    _, _ = tensor_decomp(tMeans, rank, "NNparafac")
+    factors_NNP, facinfo = tensor_decomp(tMeans, rank, "NNparafac")
+
+    cpVector = cp_to_vector(facinfo, zflowTensor,maxcluster)
+
+    vectorFac = vector_to_cp(cpVector, rank, tMeans)
+
+    assert vectorFac.factors[0].flatten().all() == factors_NNP[0].values.flatten().all()
 
     nk_tMeans_guess = leastsquaresguess(nk, tMeans)
 

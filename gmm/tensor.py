@@ -34,7 +34,7 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
     return dfs, fac
 
 
-def tensor_R2X(tensor, maxrank, tensortype):
+def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
     """ Calculates the R2X value even where NaN values are present"""
     rank = np.arange(1, maxrank)
     varexpl = np.empty(len(rank))
@@ -48,6 +48,37 @@ def tensor_R2X(tensor, maxrank, tensortype):
         varexpl[i] = 1.0 - vTop / vBottom
 
     return rank, varexpl
+
+def cp_to_vector(facinfo,zflowTensor: xa.DataArray,maxcluster: int):
+
+    tensor = tl.cp_to_tensor(facinfo) 
+    times = zflowTensor.coords["Time"]
+    doses = zflowTensor.coords["Dose"]
+    ligand = zflowTensor.coords["Ligand"]
+    clustArray = np.arange(1, maxcluster + 1)
+    commonSize = (len(times), len(doses), len(ligand))
+    commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
+
+    facMeans = xa.DataArray(tensor, coords={"Cluster": clustArray, "Markers": markerslist, **commonDims})
+    facMeans = facMeans.stack(z=("Ligand", "Dose", "Time","Markers","Cluster")).to_numpy()
+
+    return facMeans
+
+
+
+def vector_to_cp(vectorIn: np.ndarray, rank: int, tMeans: xa.DataArray):
+
+    nN = np.cumsum(np.array(tMeans.shape)*rank)
+    A = np.reshape(vectorIn[:nN[0]], (tMeans.shape[0], rank))
+    B = np.reshape(vectorIn[nN[0]:nN[1]], (tMeans.shape[1], rank))
+    C = np.reshape(vectorIn[nN[1]:nN[2]], (tMeans.shape[2], rank))
+    D = np.reshape(vectorIn[nN[2]:nN[3]], (tMeans.shape[3], rank))
+    E = np.reshape(vectorIn[nN[3]:nN[4]], (tMeans.shape[4], rank))
+
+    tFac = tl.cp_tensor.CPTensor((None, [A, B, C, D, E]))
+
+    return tFac
+
 
 
 def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tPrecision: xa.DataArray, nk: np.ndarray):
@@ -84,7 +115,7 @@ def leastsquaresguess(nk, tMeans):
     return np.append(nkCommon, tMeans_vector)
 
 
-def maxloglik(nk_tMeans_input, maxcluster, zflowDF, tMeans, tCovar):
+def maxloglik(nk_tMeans_input, maxcluster, zflowDF, tMeans, tPrecision):
     nk_guess = nk_tMeans_input[0:maxcluster]
 
     tGuessMeans = tMeans.copy()
@@ -94,7 +125,7 @@ def maxloglik(nk_tMeans_input, maxcluster, zflowDF, tMeans, tCovar):
 
     tGuessMeans.values = np.reshape(tMeans_input, tMeans.shape)
 
-    ll = comparingGMM(zflowDF, tGuessMeans, tCovar, nk_guess)
-    print(ll)
+    ll = comparingGMM(zflowDF, tGuessMeans, tPrecision, nk_guess)
+    # print(ll)
 
     return -ll
