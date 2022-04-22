@@ -46,6 +46,3 @@ def test_probGMM():
     optimized2 = comparingGMM(zflowTensor, tMeans, tCovar, nkValues)
 
     assert optimized1 == optimized2
-
-        
-
