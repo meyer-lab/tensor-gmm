@@ -55,33 +55,34 @@ def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tPrecision: xa.Dat
     assert nk.ndim == 1
     nk /= np.sum(nk)
     loglik = logsumexp(np.log(nk)) * tMeans.shape[2] * tMeans.shape[3] * tMeans.shape[4]
-    normTerm = n_features * np.log(2 * np.pi)
 
-    tMeans = tMeans.to_numpy()
-    tPrecision = tPrecision.to_numpy()
-    X = zflowDF.to_numpy()
-
-    Xp = np.einsum("jiklm,njoklm->nioklm", X, tPrecision)
+    Xp = np.einsum("jiklm,njoklm->nioklm", zflowDF, tPrecision)
     mp = np.einsum("ijklm,ijoklm->ioklm", tMeans, tPrecision)
     diff = np.square(Xp - mp[:, np.newaxis, :, :, :, :])
     n_features = mp.shape[1]
+    diff_sum = -0.5 * (n_features * np.log(2 * np.pi) + np.sum(diff, axis=2))
+    log_prob = np.swapaxes(diff_sum, 0, 1)
 
     it = np.nditer(tMeans[0, 0, :, :, :], flags=['multi_index', 'refs_ok'])
     for _ in it:  # Loop over indices
         i, j, k = it.multi_index
 
-        precisions_chol = tPrecision[:, :, :, i, j, k]
+        precisions_chol = tPrecision[:, :, :, i, j, k].to_numpy()
+        print(precisions_chol.shape)
+
+        pp = precisions_chol.reshape(mp.shape[0], -1)
+        print(pp.shape)
+
+        assert False
 
         # The determinant of the precision matrix from the Cholesky decomposition
         # corresponds to the negative half of the determinant of the full precision matrix.
         # In short: det(precision_chol) = - det(precision) / 2
         log_det = np.sum(np.log(precisions_chol.reshape(mp.shape[0], -1)[:, :: n_features + 1]), 1)
 
-        log_prob = np.sum(diff[:, :, :, i, j, k], axis=2).T
-
         # Since we are using the precision of the Cholesky decomposition,
         # `- 0.5 * log_det_precision` becomes `+ log_det_precision_chol`
-        loglik += logsumexp(-0.5 * (normTerm + log_prob) + log_det)
+        loglik += logsumexp(log_prob[:, :, i, j, k] + log_det)
 
     return loglik
 
