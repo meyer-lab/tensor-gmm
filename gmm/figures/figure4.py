@@ -7,6 +7,7 @@ from ..imports import smallDF
 from ..GMM import probGMM
 from ..tensor import tensor_decomp, maxloglik, leastsquaresguess
 
+
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
@@ -28,7 +29,7 @@ def makeFigure():
     # conditions and output of decomposition
 
     rank = 2
-    factors_NNP, facinfo = tensor_decomp(tMeans, rank, "NNparafac")
+    _, _ = tensor_decomp(tMeans, rank, "NNparafac")
 
     nk_tMeans_guess = leastsquaresguess(nk, tMeans)
 
