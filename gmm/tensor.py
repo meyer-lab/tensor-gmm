@@ -15,14 +15,10 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
 
     if tensortype == "NNparafac":
         fac = non_negative_parafac(
-            np.nan_to_num(
-                tensor.to_numpy()), mask=np.isfinite(
-                tensor.to_numpy()), rank=ranknumb)
+            np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
     else:
         fac = parafac(
-            np.nan_to_num(
-                tensor.to_numpy()), mask=np.isfinite(
-                tensor.to_numpy()), rank=ranknumb)
+            np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, ranknumb + 1)]
     fac = cp_normalize(fac)
@@ -34,7 +30,7 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
     return dfs, fac
 
 
-def tensor_R2X(tensor, maxrank, tensortype):
+def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
     """ Calculates the R2X value even where NaN values are present"""
     rank = np.arange(1, maxrank)
     varexpl = np.empty(len(rank))
@@ -50,8 +46,28 @@ def tensor_R2X(tensor, maxrank, tensortype):
     return rank, varexpl
 
 
-def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tPrecision: xa.DataArray, nk: np.ndarray):
-    """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
+def cp_to_vector(facinfo: tl.cp_tensor.CPTensor):
+    """ Converts from factors to a linear vector. """
+    vec = []
+
+    for fac in facinfo.factors:
+        vec = np.append(vec, fac.flatten())
+
+    return vec
+
+
+def vector_to_cp(vectorIn: np.ndarray, rank: int, shape: tuple):
+    """Converts linear vector to factors"""
+    nN = np.cumsum(np.array(shape) * rank)
+    nN = np.insert(nN, 0, 0)
+
+    factors = [np.reshape(vectorIn[nN[ii]:nN[ii + 1]], (shape[ii], rank)) for ii in range(len(shape))]
+    return tl.cp_tensor.CPTensor((None, factors))
+
+
+def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: xa.DataArray, nk: np.ndarray):
+    """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
+    to determine the max log-likelihood"""
     assert nk.ndim == 1
     nk /= np.sum(nk)
     loglik = logsumexp(np.log(nk)) * tMeans.shape[2] * tMeans.shape[3] * tMeans.shape[4]
@@ -82,16 +98,10 @@ def leastsquaresguess(nk, tMeans):
     return np.append(nkCommon, tMeans_vector)
 
 
-def maxloglik(nk_tMeans_input, maxcluster, zflowDF, tMeans, tCovar):
-    nk_guess = nk_tMeans_input[0:maxcluster]
+def maxloglik(facVector: np.ndarray, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArray, nk: np.ndarray, zflowTensor: xa.DataArray):
+    """Function used to rebuild tMeans from factors and maximize log-likelihood"""
+    factorsguess = vector_to_cp(facVector, facInfo.rank, facInfo.shape)
+    rebuildMeans = tl.cp_to_tensor(factorsguess)
 
-    tGuessMeans = tMeans.copy()
-    assert len(nk_guess) == maxcluster
-    tMeans_input = nk_tMeans_input[maxcluster:]
-    assert len(tMeans_input) == len(tMeans.values.flatten())
-
-    tGuessMeans.values = np.reshape(tMeans_input, tMeans.shape)
-
-    ll = comparingGMM(zflowDF, tGuessMeans, tCovar, nk_guess)
-
+    ll = comparingGMM(zflowTensor, rebuildMeans, tPrecision, nk)
     return -ll
