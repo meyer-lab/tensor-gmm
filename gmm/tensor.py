@@ -15,14 +15,10 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
 
     if tensortype == "NNparafac":
         fac = non_negative_parafac(
-            np.nan_to_num(
-                tensor.to_numpy()), mask=np.isfinite(
-                tensor.to_numpy()), rank=ranknumb)
+            np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
     else:
         fac = parafac(
-            np.nan_to_num(
-                tensor.to_numpy()), mask=np.isfinite(
-                tensor.to_numpy()), rank=ranknumb)
+            np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, ranknumb + 1)]
     fac = cp_normalize(fac)
@@ -70,7 +66,8 @@ def vector_to_cp(vectorIn: np.ndarray, rank: int, shape: tuple):
 
 
 def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tPrecision: xa.DataArray, nk: np.ndarray):
-    """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values"""
+    """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
+    to determine the max log-likelihood"""
     assert nk.ndim == 1
     nk /= np.sum(nk)
     loglik = 0.0
@@ -102,17 +99,20 @@ def leastsquaresguess(nk, tMeans):
     tMeans_vector = tMeans.values.flatten()
     return np.append(nkCommon, tMeans_vector)
 
+def maxloglik(facVector:np.ndarray, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArray, nk: np.ndarray,zflowTensor: xa.DataArray):
+    """Function used to rebuild tMeans from factors and maximize log-likelihood"""
+    factorsguess = vector_to_cp(facVector, facInfo.rank, facInfo.shape)
+    rebuildMeans = tl.cp_to_tensor(factorsguess)
+       
+    times = tPrecision.coords["Time"]
+    doses = tPrecision.coords["Dose"]
+    ligand = tPrecision.coords["Ligand"]
+    clustArray = np.arange(1, len(tPrecision.coords["Cluster"]) + 1)
+    commonSize = (len(times), len(doses), len(ligand))
+    commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
 
-def maxloglik(nk_tMeans_input, maxcluster, zflowDF, tMeans, tPrecision):
-    nk_guess = nk_tMeans_input[0:maxcluster]
+    facMeans = xa.DataArray(rebuildMeans, coords={"Cluster": clustArray, "Markers": markerslist, **commonDims})
 
-    tGuessMeans = tMeans.copy()
-    assert len(nk_guess) == maxcluster
-    tMeans_input = nk_tMeans_input[maxcluster:]
-    assert len(tMeans_input) == len(tMeans.values.flatten())
-
-    tGuessMeans.values = np.reshape(tMeans_input, tMeans.shape)
-
-    ll = comparingGMM(zflowDF, tGuessMeans, tPrecision, nk_guess)
+    ll = comparingGMM(zflowTensor, facMeans, tPrecision, nk)
 
     return -ll
