@@ -49,31 +49,24 @@ def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
 
     return rank, varexpl
 
-def cp_to_vector(facinfo, tMeans:xa.DataArray):
-    """Converts from factors to linear vector"""
-    finalvector = []
 
-    for i in range(len(np.shape(tMeans))):
-        factorvalues = facinfo.factors[i].flatten()
-        finalvector = np.append(finalvector, factorvalues)
+def cp_to_vector(facinfo: tl.cp_tensor.CPTensor):
+    """ Converts from factors to a linear vector. """
+    vec = []
 
-    return finalvector
+    for fac in facinfo.factors:
+        vec = np.append(vec, fac.flatten())
+
+    return vec
 
 
-
-def vector_to_cp(vectorIn: np.ndarray, rank: int, tMeans: xa.DataArray):
+def vector_to_cp(vectorIn: np.ndarray, rank: int, shape: tuple):
     """Converts linear vector to factors"""
-    nN = np.cumsum(np.array(tMeans.shape)*rank)
-    A = np.reshape(vectorIn[:nN[0]], (tMeans.shape[0], rank))
-    B = np.reshape(vectorIn[nN[0]:nN[1]], (tMeans.shape[1], rank))
-    C = np.reshape(vectorIn[nN[1]:nN[2]], (tMeans.shape[2], rank))
-    D = np.reshape(vectorIn[nN[2]:nN[3]], (tMeans.shape[3], rank))
-    E = np.reshape(vectorIn[nN[3]:nN[4]], (tMeans.shape[4], rank))
+    nN = np.cumsum(np.array(shape)*rank)
+    nN = np.insert(nN, 0, 0)
 
-    tFac = tl.cp_tensor.CPTensor((None, [A, B, C, D, E]))
-
-    return tFac
-
+    factors = [np.reshape(vectorIn[nN[ii]:nN[ii+1]], (shape[ii], rank)) for ii in range(len(shape))]
+    return tl.cp_tensor.CPTensor((None, factors))
 
 
 def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tPrecision: xa.DataArray, nk: np.ndarray):
@@ -121,6 +114,5 @@ def maxloglik(nk_tMeans_input, maxcluster, zflowDF, tMeans, tPrecision):
     tGuessMeans.values = np.reshape(tMeans_input, tMeans.shape)
 
     ll = comparingGMM(zflowDF, tGuessMeans, tPrecision, nk_guess)
-    # print(ll)
 
     return -ll

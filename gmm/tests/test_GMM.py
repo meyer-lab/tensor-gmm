@@ -2,9 +2,11 @@
 Test the data import.
 """
 import pandas as pd
+from numpy.testing import assert_allclose
+from tensorly.random import random_cp
 from ..imports import smallDF
 from ..GMM import cvGMM, probGMM
-from ..tensor import tensor_decomp, cp_to_vector, vector_to_cp
+from ..tensor import cp_to_vector, vector_to_cp
 
 
 def test_cvGMM():
@@ -24,13 +26,9 @@ def test_GMMprob():
 
 def test_TensorVector():
     """Test that we can go from Cp to vector, and from vector to Cp without changing values."""
-    cellperexp = 50
-    dataTwo, _ = smallDF(cellperexp)
-    maxcluster = 4
-    nk, means, covari = probGMM(dataTwo, maxcluster)
-    rank = 2
-    factors_NNP, facinfo = tensor_decomp(means, rank, "NNparafac")
-    cpVector = cp_to_vector(facinfo, dataTwo)
-    vectorFac = vector_to_cp(cpVector, rank, means)
+    cp_tensor = random_cp((10, 11, 12, 13, 14), 3, normalise_factors=False)
+    cpVector = cp_to_vector(cp_tensor)
+    vectorFac = vector_to_cp(cpVector, cp_tensor.rank, cp_tensor.shape)
 
-    assert vectorFac.factors[0].flatten().all() == factors_NNP[0].values.flatten().all()
+    for ii in range(len(vectorFac.factors)):
+        assert_allclose(vectorFac.factors[ii], cp_tensor.factors[ii])
