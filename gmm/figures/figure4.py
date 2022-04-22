@@ -1,13 +1,11 @@
 """
 This creates Figure 4.
 """
-import numpy as np
 from scipy.optimize import minimize
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, maxloglik, leastsquaresguess, cp_to_vector, vector_to_cp
-
+from ..tensor import tensor_decomp, maxloglik, leastsquaresguess
 
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
