@@ -49,25 +49,20 @@ def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
 
     return rank, varexpl
 
-def cp_to_vector(facinfo,zflowTensor: xa.DataArray,maxcluster: int):
+def cp_to_vector(facinfo, tMeans:xa.DataArray):
+    """Converts from factors to linear vector"""
+    finalvector = []
 
-    tensor = tl.cp_to_tensor(facinfo) 
-    times = zflowTensor.coords["Time"]
-    doses = zflowTensor.coords["Dose"]
-    ligand = zflowTensor.coords["Ligand"]
-    clustArray = np.arange(1, maxcluster + 1)
-    commonSize = (len(times), len(doses), len(ligand))
-    commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
+    for i in range(len(np.shape(tMeans))):
+        factorvalues = facinfo.factors[i].flatten()
+        finalvector = np.append(finalvector, factorvalues)
 
-    facMeans = xa.DataArray(tensor, coords={"Cluster": clustArray, "Markers": markerslist, **commonDims})
-    facMeans = facMeans.stack(z=("Ligand", "Dose", "Time","Markers","Cluster")).to_numpy()
-
-    return facMeans
+    return finalvector
 
 
 
 def vector_to_cp(vectorIn: np.ndarray, rank: int, tMeans: xa.DataArray):
-
+    """Converts linear vector to factors"""
     nN = np.cumsum(np.array(tMeans.shape)*rank)
     A = np.reshape(vectorIn[:nN[0]], (tMeans.shape[0], rank))
     B = np.reshape(vectorIn[nN[0]:nN[1]], (tMeans.shape[1], rank))

@@ -1,6 +1,7 @@
 """
 This creates Figure 4.
 """
+import numpy as np
 from scipy.optimize import minimize
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
@@ -30,12 +31,6 @@ def makeFigure():
 
     rank = 2
     factors_NNP, facinfo = tensor_decomp(tMeans, rank, "NNparafac")
-
-    cpVector = cp_to_vector(facinfo, zflowTensor,maxcluster)
-
-    vectorFac = vector_to_cp(cpVector, rank, tMeans)
-
-    assert vectorFac.factors[0].flatten().all() == factors_NNP[0].values.flatten().all()
 
     nk_tMeans_guess = leastsquaresguess(nk, tMeans)
 
