@@ -63,28 +63,17 @@ def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tPrecision: xa.Dat
     diff_sum = -0.5 * (n_features * np.log(2 * np.pi) + np.sum(diff, axis=2))
     log_prob = np.swapaxes(diff_sum, 0, 1)
 
-    it = np.nditer(tMeans[0, 0, :, :, :], flags=['multi_index', 'refs_ok'])
-    for _ in it:  # Loop over indices
-        i, j, k = it.multi_index
+    # The determinant of the precision matrix from the Cholesky decomposition
+    # corresponds to the negative half of the determinant of the full precision matrix.
+    # In short: det(precision_chol) = - det(precision) / 2
+    prec_numpy = tPrecision.to_numpy()
+    prec_numpy = prec_numpy.reshape(prec_numpy.shape[0], -1, prec_numpy.shape[3], prec_numpy.shape[4], prec_numpy.shape[5])
+    prec_numpy = np.log(prec_numpy)
 
-        precisions_chol = tPrecision[:, :, :, i, j, k].to_numpy()
-        print(precisions_chol.shape)
+    log_det = np.sum(prec_numpy[:, :: n_features + 1, :, :, :], 1)
 
-        pp = precisions_chol.reshape(mp.shape[0], -1)
-        print(pp.shape)
-
-        assert False
-
-        # The determinant of the precision matrix from the Cholesky decomposition
-        # corresponds to the negative half of the determinant of the full precision matrix.
-        # In short: det(precision_chol) = - det(precision) / 2
-        log_det = np.sum(np.log(precisions_chol.reshape(mp.shape[0], -1)[:, :: n_features + 1]), 1)
-
-        # Since we are using the precision of the Cholesky decomposition,
-        # `- 0.5 * log_det_precision` becomes `+ log_det_precision_chol`
-        loglik += logsumexp(log_prob[:, :, i, j, k] + log_det)
-
-    return loglik
+    ll = logsumexp(log_prob + log_det[np.newaxis, :, :, :, :], axis=(0, 1))
+    return loglik + np.sum(ll)
 
 
 def leastsquaresguess(nk, tMeans):
@@ -104,6 +93,5 @@ def maxloglik(nk_tMeans_input, maxcluster, zflowDF, tMeans, tCovar):
     tGuessMeans.values = np.reshape(tMeans_input, tMeans.shape)
 
     ll = comparingGMM(zflowDF, tGuessMeans, tCovar, nk_guess)
-    print(ll)
 
     return -ll
