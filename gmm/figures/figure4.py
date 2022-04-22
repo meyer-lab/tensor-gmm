@@ -32,10 +32,21 @@ def makeFigure():
     rank = 2
     _, facInfo = tensor_decomp(tMeans, rank, "NNparafac")
 
-    nkValues = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))  
+    nkValues = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))
     cpVector = cp_to_vector(facInfo)
 
-    optimized = minimize(maxloglik, cpVector, method="Nelder-Mead", args=(facInfo, tCovar, nkValues, zflowTensor), options={"disp": True, "maxiter": 1})
+    optimized = minimize(
+        maxloglik,
+        cpVector,
+        method="Nelder-Mead",
+        args=(
+            facInfo,
+            tCovar,
+            nkValues,
+            zflowTensor),
+        options={
+            "disp": True,
+            "maxiter": 10})
 
     print("Optimized Parameters:", optimized)
 

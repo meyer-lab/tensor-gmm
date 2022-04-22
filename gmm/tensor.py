@@ -58,21 +58,20 @@ def cp_to_vector(facinfo: tl.cp_tensor.CPTensor):
 
 def vector_to_cp(vectorIn: np.ndarray, rank: int, shape: tuple):
     """Converts linear vector to factors"""
-    nN = np.cumsum(np.array(shape)*rank)
+    nN = np.cumsum(np.array(shape) * rank)
     nN = np.insert(nN, 0, 0)
 
-    factors = [np.reshape(vectorIn[nN[ii]:nN[ii+1]], (shape[ii], rank)) for ii in range(len(shape))]
+    factors = [np.reshape(vectorIn[nN[ii]:nN[ii + 1]], (shape[ii], rank)) for ii in range(len(shape))]
     return tl.cp_tensor.CPTensor((None, factors))
 
 
-def comparingGMM(zflowDF: xa.DataArray, tMeans: xa.DataArray, tPrecision: xa.DataArray, nk: np.ndarray):
+def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: xa.DataArray, nk: np.ndarray):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
     to determine the max log-likelihood"""
     assert nk.ndim == 1
     nk /= np.sum(nk)
     loglik = 0.0
 
-    tMeans = tMeans.to_numpy()
     tPrecision = tPrecision.to_numpy()
     X = zflowDF.to_numpy()
 
@@ -99,20 +98,11 @@ def leastsquaresguess(nk, tMeans):
     tMeans_vector = tMeans.values.flatten()
     return np.append(nkCommon, tMeans_vector)
 
-def maxloglik(facVector:np.ndarray, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArray, nk: np.ndarray,zflowTensor: xa.DataArray):
+
+def maxloglik(facVector: np.ndarray, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArray, nk: np.ndarray, zflowTensor: xa.DataArray):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     factorsguess = vector_to_cp(facVector, facInfo.rank, facInfo.shape)
     rebuildMeans = tl.cp_to_tensor(factorsguess)
-       
-    times = tPrecision.coords["Time"]
-    doses = tPrecision.coords["Dose"]
-    ligand = tPrecision.coords["Ligand"]
-    clustArray = np.arange(1, len(tPrecision.coords["Cluster"]) + 1)
-    commonSize = (len(times), len(doses), len(ligand))
-    commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
 
-    facMeans = xa.DataArray(rebuildMeans, coords={"Cluster": clustArray, "Markers": markerslist, **commonDims})
-
-    ll = comparingGMM(zflowTensor, facMeans, tPrecision, nk)
-
+    ll = comparingGMM(zflowTensor, rebuildMeans, tPrecision, nk)
     return -ll
