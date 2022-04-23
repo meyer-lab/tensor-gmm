@@ -131,5 +131,5 @@ def maxloglik(facVector: np.ndarray, facInfo: tl.cp_tensor.CPTensor, tPrecision:
     factorsguess = vector_to_cp(facVector, facInfo.rank, facInfo.shape)
     rebuildMeans = tl.cp_to_tensor(factorsguess)
 
-    ll = comparingGMM(zflowTensor, rebuildMeans, tPrecision, nk)
+    ll = comparingGMMjax(zflowTensor, rebuildMeans, tPrecision.to_numpy(), nk)
     return -ll
