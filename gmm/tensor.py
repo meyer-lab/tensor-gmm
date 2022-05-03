@@ -18,6 +18,7 @@ config.update("jax_enable_x64", True)
 def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
     """ Runs tensor decomposition on means tensor. """
 
+
     # Need to input the tMeans as numpy tensor
     if tensortype == "NNparafac":
         fac = non_negative_parafac(

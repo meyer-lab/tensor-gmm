@@ -45,7 +45,6 @@ def makeFigure():
     ax[2].set(xlabel=xlabel, ylabel=ylabel)
 
     wtntermDF = tMeans.loc[:, :, :, :, "WT C-term-1"]
-
     for i, mark in enumerate(["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]):
         df = wtntermDF.loc[:, mark, :, :].to_dataframe(mark)
         sns.lineplot(data=df, x="Dose", y=mark, hue="Cluster", ax=ax[i + 3], palette='pastel', ci=None)

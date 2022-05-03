@@ -71,7 +71,6 @@ def probGMM(zflowDF: xa.DataArray, n_clusters: int):
                              coords={"Cluster": clustArray, "Marker1": markerslist, "Marker2": markerslist, **commonDims})
 
     it = np.nditer(nk[0, :, :, :], flags=['multi_index', 'refs_ok'])
-
     for _ in it:
         i, j, k = it.multi_index
         # _estimate_gaussian_parameters(zflowXArray[Cell Number, Marker],Log_resp[Cell Number, Cluster])

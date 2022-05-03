@@ -14,8 +14,6 @@ from tensorly.decomposition import partial_tucker
 
 config.update("jax_enable_x64", True)
 
-
-
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
