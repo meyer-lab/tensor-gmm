@@ -5,7 +5,6 @@ import jax.scipy.special as jsp
 from jax.config import config
 import tensorly as tl
 import xarray as xa
-from scipy.special import logsumexp
 from sklearn.mixture import GaussianMixture
 
 from tensorly.decomposition import non_negative_parafac, parafac, partial_tucker
@@ -69,7 +68,7 @@ def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
 
 def cp_to_vector(facinfo: tl.cp_tensor.CPTensor):
     """ Converts from factors to a linear vector. """
-    vec = []
+    vec = np.array([], dtype=float)
 
     for fac in facinfo.factors:
         vec = np.append(vec, fac.flatten())
@@ -138,9 +137,11 @@ def comparingGMMjax(X, tMeans, tPrecision, nk):
     loglik = jnp.sum(jsp.logsumexp(log_prob + log_det[jnp.newaxis, :, :, :, :] + nkl[jnp.newaxis, :, jnp.newaxis, jnp.newaxis, jnp.newaxis], axis=1))
     return loglik
 
-def maxloglik(facVector, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArray, nk: np.ndarray, zflowTensor: xa.DataArray):
+
+def maxloglik(facVector, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArray, zflowTensor: xa.DataArray):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
-    factorsguess = vector_to_cp(facVector, facInfo.rank, facInfo.shape)
+    nk = facVector[0:facInfo.shape[0]]
+    factorsguess = vector_to_cp(facVector[facInfo.shape[0]::], facInfo.rank, facInfo.shape)
     rebuildMeans = tl.cp_to_tensor(factorsguess)
     # Creating function that we want to minimize 
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, tPrecision.to_numpy(), nk)

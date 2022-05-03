@@ -7,12 +7,13 @@ from scipy.optimize import minimize
 from jax.config import config
 from jax import value_and_grad
 from .common import subplotLabel, getSetup
-from ..imports import smallDF
-from ..GMM import probGMM
-from ..tensor import tensor_decomp, cp_to_vector, maxloglik
+from gmm.imports import smallDF
+from gmm.GMM import probGMM
+from gmm.tensor import tensor_decomp, cp_to_vector, maxloglik
 from tensorly.decomposition import partial_tucker
 
 config.update("jax_enable_x64", True)
+
 
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
@@ -41,14 +42,14 @@ def makeFigure():
 
     nkValues = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))
     cpVector = cp_to_vector(facInfo)
-    args = (facInfo, tCovar, nkValues, zflowTensor)
+    cpVector = np.concatenate((nkValues, cpVector))
+    args = (facInfo, tCovar, zflowTensor)
 
     tl.set_backend("jax")
 
     func = value_and_grad(maxloglik)
 
-    opt = minimize(func, cpVector, jac=True, method="L-BFGS-B",
-                   args=args, options={"iprint": 50})
+    opt = minimize(func, cpVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50})
 
     tl.set_backend("numpy")
 
