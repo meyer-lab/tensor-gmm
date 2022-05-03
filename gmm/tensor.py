@@ -8,7 +8,7 @@ import xarray as xa
 from scipy.special import logsumexp
 from sklearn.mixture import GaussianMixture
 
-from tensorly.decomposition import non_negative_parafac, parafac
+from tensorly.decomposition import non_negative_parafac, parafac, partial_tucker
 from tensorly.cp_tensor import cp_normalize
 
 markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
@@ -18,6 +18,7 @@ config.update("jax_enable_x64", True)
 def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
     """ Runs tensor decomposition on means tensor. """
 
+    # Need to input the tMeans as numpy tensor
     if tensortype == "NNparafac":
         fac = non_negative_parafac(
             np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
@@ -26,25 +27,39 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
             np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, ranknumb + 1)]
-    fac = cp_normalize(fac)
+    fac = cp_normalize(fac) # Normalizing factors
 
     dfs = []
     for ii, dd in enumerate(tensor.dims):
         dfs.append(pd.DataFrame(fac.factors[ii], columns=cmpCol, index=tensor.coords[dd]))
+        # For each dimension in tensor, have a specific ranking for each parameter
 
     return dfs, fac
+
+def tensorcovar_decomp(tCovar: xa.DataArray, ranknumb: int, nk: xa.DataArray):
+    """Runs partial tucker decomposition on covariance tensor"""
+    ptCore, ptFactors = partial_tucker(tCovar.to_numpy(), modes=[0,3,4,5],rank = ranknumb)
+
+    dfs = []
+    cmpCol = [f"Cmp. {i}" for i in np.arange(1, ranknumb + 1)]
+    for ii, dd in enumerate(nk.dims):
+        dfs.append(pd.DataFrame(ptFactors[ii], columns=cmpCol, index=nk.coords[dd]))
+        # For each dimension on modes, have a specific ranking for each parameter
+
+    return dfs, ptCore, ptFactors
 
 
 def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
     """ Calculates the R2X value even where NaN values are present"""
-    rank = np.arange(1, maxrank)
+    rank = np.arange(1, maxrank+1)
     varexpl = np.empty(len(rank))
 
     for i in range(len(rank)):
         _, facinfo = tensor_decomp(tensor, rank[i], tensortype)
         vTop, vBottom = 0.0, 0.0
         tMask = np.isfinite(tensor)
-        vTop += np.sum(np.square(tl.cp_to_tensor(facinfo) * tMask - np.nan_to_num(tensor)))
+        vTop += np.sum(np.square(tl.cp_to_tensor(facinfo) * tMask - np.nan_to_num(tensor))) 
+        # Need to rebuild tensor using factors and weights
         vBottom += np.sum(np.square(np.nan_to_num(tensor)))
         varexpl[i] = 1.0 - vTop / vBottom
 
@@ -67,6 +82,7 @@ def vector_to_cp(vectorIn, rank: int, shape: tuple):
     nN = jnp.insert(nN, 0, 0)
 
     factors = [jnp.reshape(vectorIn[nN[ii]:nN[ii + 1]], (shape[ii], rank)) for ii in range(len(shape))]
+    # Rebuidling factors and ranks 
     return tl.cp_tensor.CPTensor((None, factors))
 
 
@@ -83,15 +99,17 @@ def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarr
     for _ in it:  # Loop over indices
         i, j, k = it.multi_index
 
-        Xcur = np.transpose(X[:, :, i, j, k])
+        Xcur = np.transpose(X[:, :, i, j, k]) # Cell Number per experiment x Marker
+       
 
         if np.all(np.isnan(Xcur)):  # Skip if there's no data
             continue
+        
 
         gmm = GaussianMixture(n_components=nk.size, covariance_type="full", means_init=tMeans[:, :, i, j, k],
                               weights_init=nk)
-        gmm._initialize(Xcur, np.ones((X.shape[1], nk.size)))
-        gmm.precisions_cholesky_ = tPrecision[:, :, :, i, j, k]
+        gmm._initialize(Xcur, np.ones((X.shape[1], nk.size))) # Markers x Clusters
+        gmm.precisions_cholesky_ = tPrecision[:, :, :, i, j, k] # Cluster x Marker x Marker
         loglik += np.sum(gmm.score_samples(Xcur))
 
     return loglik
@@ -119,15 +137,9 @@ def comparingGMMjax(X, tMeans, tPrecision, nk):
     loglik = jnp.sum(jsp.logsumexp(log_prob + log_det[jnp.newaxis, :, :, :, :] + nkl[jnp.newaxis, :, jnp.newaxis, jnp.newaxis, jnp.newaxis], axis=1))
     return loglik
 
-
-def leastsquaresguess(nk, tMeans):
-    nkCommon = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))  # nk is shared across conditions
-    tMeans_vector = tMeans.values.flatten()
-    return np.append(nkCommon, tMeans_vector)
-
-
 def maxloglik(facVector, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArray, nk: np.ndarray, zflowTensor: xa.DataArray):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     factorsguess = vector_to_cp(facVector, facInfo.rank, facInfo.shape)
     rebuildMeans = tl.cp_to_tensor(factorsguess)
+    # Creating function that we want to minimize 
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, tPrecision.to_numpy(), nk)
