@@ -44,13 +44,13 @@ def probGMM(zflowDF: xa.DataArray, n_clusters: int):
     Xxa = zflowDF.stack(z=("Ligand", "Dose", "Time", "Cell")).transpose()
     # Need shape to be [Experiments,Markers] (flattened by in reverse order)
     X = Xxa.to_numpy()
-    GMM = GaussianMixture(n_components=n_clusters,covariance_type="full",
-        max_iter=5000,verbose=20)
+    GMM = GaussianMixture(n_components=n_clusters, covariance_type="full",
+                          max_iter=5000, verbose=20)
     GMM.fit(X)
     # Need shape to be [Experiments,Markers] (flattened by in reverse order)
     log_resp = np.exp(GMM._estimate_log_prob_resp(X)[1])  # Get the responsibilities
     # log_resp = [Each experiment per cell, log_resp for each cluster]
-  
+
     times = zflowDF.coords["Time"]
     doses = zflowDF.coords["Dose"]
     ligand = zflowDF.coords["Ligand"]
@@ -78,8 +78,8 @@ def probGMM(zflowDF: xa.DataArray, n_clusters: int):
         output = _estimate_gaussian_parameters(np.transpose(zflowDF[:, :, i, j, k].values),
                                                np.transpose(log_resp[:, k, j, i, :].values), 1e-6, "full")
 
-        nk[:, i, j, k] = output[0] # Cluster
-        means[:, :, i, j, k] = output[1] # Cluster x Marker
+        nk[:, i, j, k] = output[0]  # Cluster
+        means[:, :, i, j, k] = output[1]  # Cluster x Marker
         precision[:, :, :, i, j, k] = _compute_precision_cholesky(output[2], "full")  # Cluster x Marker x Marker
 
     return nk, means, precision
