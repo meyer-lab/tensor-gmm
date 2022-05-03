@@ -52,5 +52,6 @@ def makeFigure():
     # b = tucker_to_tensor(ptCore,ptFactors)
     # print(a)
     # print(b)
+    
 
     return f
