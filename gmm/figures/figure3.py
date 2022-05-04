@@ -8,6 +8,7 @@ from gmm.imports import smallDF
 from gmm.GMM import probGMM
 from gmm.tensor import tensor_decomp, tensor_R2X
 
+
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects

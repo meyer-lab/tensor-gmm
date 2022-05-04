@@ -16,7 +16,7 @@ def makeFigure():
     # Add subplot labels
     subplotLabel(ax)
 
-   # smallDF(Amount of cells per experiment): Xarray of each marker, cell and condition
+    # smallDF(Amount of cells per experiment): Xarray of each marker, cell and condition
     # Final Xarray has dimensions [Marker, Cell Number, Time, Dose, Ligand]
     cellperexp = 600
     zflowDF, _ = smallDF(cellperexp)
@@ -24,7 +24,6 @@ def makeFigure():
     # probGM(Xarray, max cluster): Xarray [nk, means, covar] while using estimation gaussian parameters
     maxcluster = 4
     _, tMeans, _ = probGMM(zflowDF, maxcluster)
-
 
     # UnTensorify data
     tMeansDF = tMeans.loc[:, "pSTAT5", :, :].to_dataframe("pSTAT5")
