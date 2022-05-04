@@ -60,18 +60,24 @@ def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
     return rank, varexpl
 
 
-def cp_to_vector(facinfo: tl.cp_tensor.CPTensor):
+def cp_to_vector(facinfo: tl.cp_tensor.CPTensor, tensortype):
     """ Converts from factors to a linear vector. """
     vec = np.array([], dtype=float)
 
-    for fac in facinfo.factors:
-        vec = np.append(vec, fac.flatten())
+    if tensortype == "NNparafac":
+        for fac in facinfo.factors:
+            vec = np.append(vec, fac.flatten())
+    else:
+        for fac in facinfo:
+            vec = np.append(vec, fac.flatten())
+
 
     return vec
 
 
 def vector_to_cp(vectorIn, rank: int, shape: tuple):
     """Converts linear vector to factors"""
+    # Shape of tensor for means or precision matrix
     nN = jnp.cumsum(np.array(shape) * rank)
     nN = jnp.insert(nN, 0, 0)
 

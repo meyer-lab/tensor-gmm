@@ -41,7 +41,7 @@ def makeFigure():
     _, facInfo = tensor_decomp(tMeans, ranknumb, "NNparafac")
 
     nkValues = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))
-    cpVector = cp_to_vector(facInfo)
+    cpVector = cp_to_vector(facInfo,"NNparafac")
     cpVector = np.concatenate((nkValues, cpVector))
     args = (facInfo, tCovar, zflowTensor)
 
