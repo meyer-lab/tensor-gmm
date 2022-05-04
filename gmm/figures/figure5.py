@@ -13,11 +13,11 @@ from ..imports import smallDF
 from ..GMM import probGMM
 from ..tensor import tensor_decomp, cp_to_vector, maxloglik, tensorcovar_decomp
 from tensorly.decomposition import partial_tucker
-from tensorly.tucker_tensor import tucker_to_tensor, tucker_to_vec
+from tensorly.tucker_tensor import tucker_to_vec
+from tensorly.tenalg import multi_mode_dot
 
 
 config.update("jax_enable_x64", True)
-
 
 
 def makeFigure():
@@ -33,7 +33,7 @@ def makeFigure():
     cellperexp = 20
     zflowTensor, _ = smallDF(cellperexp)
 
-   # probGM(Xarray, max cluster): Xarray [nk, means, covar] while using estimation gaussian parameters
+    # probGM(Xarray, max cluster): Xarray [nk, means, covar] while using estimation gaussian parameters
     # tMeans[Cluster, Marker, Time, Dose, Ligand]
     maxcluster = 3
     nk, tMeans, tPrecision = probGMM(zflowTensor, maxcluster)
@@ -43,13 +43,10 @@ def makeFigure():
     # conditions and output of decomposition
 
     ranknumb = 2
-    covarFactorsDF, ptCore, ptFactors = tensorcovar_decomp(tPrecision, ranknumb, nk)
-
-    for i in range(0, len(nk.dims)):
-        heatmap = sns.heatmap(data= covarFactorsDF[i], ax=ax[i], cmap="Blues")
+    ptCore, ptFactors = tensorcovar_decomp(tPrecision, ranknumb, nk)
 
     # a = tucker_to_vec(ptCore,ptFactors)
-    # b = tucker_to_tensor(ptCore,ptFactors)
+    b = multi_mode_dot(ptCore, ptFactors, modes=[0, 3, 4, 5], transpose=False)
     # print(a)
     # print(b)
 
