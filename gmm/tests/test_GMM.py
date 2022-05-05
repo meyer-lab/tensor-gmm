@@ -27,6 +27,19 @@ def test_CP_to_vec():
     for ii in range(len(vectorFac.factors)):
         assert_allclose(vectorFac.factors[ii], cp_tensor.factors[ii])
 
+def test_PT_to_vec():
+    """Test that we can go from PT to vector, and from vector to PT without changing values."""
+    _, _, tPrecision = probGMM(data_import, 2)
+    ptFactors, ptCore = tensorcovar_decomp(tPrecision, 2)
+
+    ptVector, ptFacLength = pt_to_vector(ptFactors, ptCore)
+    ptNewFactors, ptNewCore = vector_to_pt(ptVector, 2, tPrecision, ptFacLength, ptCore):
+
+    for ii in range(len(ptNewFactors)):
+        assert_allclose(ptNewFactors[ii], ptFactors[ii])
+    
+    assert_allclose(ptCore, ptNewCore)
+
 
 def test_comparingGMM():
     """Test that we can ensures log likelihood is calculated the same"""
