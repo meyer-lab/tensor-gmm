@@ -40,7 +40,7 @@ def makeFigure():
     ranknumb = 2
     _, facInfo = tensor_decomp(tMeans, ranknumb, "NNparafac")
 
-    ptFactors, ptCore = tensorcovar_decomp(tPrecision, ranknumb, nk)
+    ptFactors, ptCore = tensorcovar_decomp(tPrecision, ranknumb)
 
     vecptFacCore, ptFacLength = pt_to_vector(ptFactors, ptCore)
 
