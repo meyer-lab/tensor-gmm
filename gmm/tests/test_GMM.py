@@ -7,7 +7,7 @@ from numpy.testing import assert_allclose
 from tensorly.random import random_cp
 from ..imports import smallDF
 from ..GMM import cvGMM, probGMM
-from ..tensor import cp_to_vector, vector_to_cp, comparingGMM, comparingGMMjax
+from ..tensor import cp_to_vector, vector_to_cp, comparingGMM, comparingGMMjax, tensorcovar_decomp, pt_to_vector, vector_to_pt
 
 data_import, other_import = smallDF(10)
 
