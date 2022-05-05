@@ -11,11 +11,12 @@ from jax import value_and_grad
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, cp_to_vector, maxloglik, tensorcovar_decomp, vector_to_cp
+from ..tensor import tensor_decomp, cp_to_vector, maxloglik, tensorcovar_decomp, vector_to_cp, pt_to_vector, maxloglik_ptnnp, vector_to_pt
 from tensorly.decomposition import partial_tucker
 from tensorly.tucker_tensor import tucker_to_vec
 from tensorly.tenalg import multi_mode_dot
 from numpy.testing import assert_allclose
+import jax.numpy as jnp
 
 
 config.update("jax_enable_x64", True)
@@ -44,16 +45,26 @@ def makeFigure():
     # conditions and output of decomposition
 
     ranknumb = 2
-    ptCore, ptFactors = tensorcovar_decomp(tPrecision, ranknumb, nk)
-    rebuildPrecision = multi_mode_dot(ptCore, ptFactors, modes=[0, 3, 4, 5], transpose=False)
+    _, facInfo = tensor_decomp(tMeans, ranknumb,"NNparafac")
+   
+    ptFactors, ptCore = tensorcovar_decomp(tPrecision, ranknumb, nk)
 
-    modesPrecision = [tPrecision.shape[0], tPrecision.shape[3], tPrecision.shape[4], tPrecision.shape[5]]
-    ptVector = cp_to_vector(ptFactors, "PT")
-    ptRebuildFactors = vector_to_cp(ptVector, ranknumb, modesPrecision)
+    vecptFacCore, ptFacLength = pt_to_vector(ptFactors,ptCore)
 
+    nkValues = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))
+    cpVector = cp_to_vector(facInfo)
+    cpVectorLength = len(cpVector)
+    totalVector = np.concatenate((nkValues, cpVector, vecptFacCore))
 
-    for ii in range(len(ptRebuildFactors.factors)):
-        assert_allclose(ptRebuildFactors.factors[ii], ptFactors[ii])
+    args = (tPrecision, facInfo, zflowTensor, cpVectorLength, ptFacLength, ptCore)
+
+    tl.set_backend("jax")
+
+    func = value_and_grad(maxloglik_ptnnp)
+
+    opt = minimize(func, totalVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50})
+
+    tl.set_backend("numpy")
 
 
     return f

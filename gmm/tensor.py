@@ -9,6 +9,7 @@ from sklearn.mixture import GaussianMixture
 
 from tensorly.decomposition import non_negative_parafac, parafac, partial_tucker
 from tensorly.cp_tensor import cp_normalize
+from tensorly.tenalg import multi_mode_dot
 
 markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 config.update("jax_enable_x64", True)
@@ -40,7 +41,7 @@ def tensorcovar_decomp(tCovar: xa.DataArray, ranknumb: int, nk: xa.DataArray):
     """Runs partial tucker decomposition on covariance tensor"""
     ptCore, ptFactors = partial_tucker(tCovar.to_numpy(), modes=[0, 3, 4, 5], rank=ranknumb)
 
-    return ptCore, ptFactors
+    return ptFactors, ptCore
 
 
 def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
@@ -60,19 +61,26 @@ def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
     return rank, varexpl
 
 
-def cp_to_vector(facinfo: tl.cp_tensor.CPTensor, tensortype):
+def cp_to_vector(facinfo: tl.cp_tensor.CPTensor):
     """ Converts from factors to a linear vector. """
     vec = np.array([], dtype=float)
 
-    if tensortype == "NNparafac":
-        for fac in facinfo.factors:
-            vec = np.append(vec, fac.flatten())
-    else:
-        for fac in facinfo:
-            vec = np.append(vec, fac.flatten())
-
+    for fac in facinfo.factors:
+        vec = np.append(vec, fac.flatten())
 
     return vec
+
+def pt_to_vector(ptFactors,ptCore):
+    """ Converts from factors to a linear vector. """
+    vec = np.array([], dtype=float)
+
+    for fac in ptFactors:
+        vec = np.append(vec, fac.flatten())
+
+    ptFactor_length = len(vec)
+    vec = np.append(vec,ptCore.flatten())
+    
+    return vec, ptFactor_length
 
 
 def vector_to_cp(vectorIn, rank: int, shape: tuple):
@@ -84,6 +92,22 @@ def vector_to_cp(vectorIn, rank: int, shape: tuple):
     factors = [jnp.reshape(vectorIn[nN[ii]:nN[ii + 1]], (shape[ii], rank)) for ii in range(len(shape))]
     # Rebuidling factors and ranks
     return tl.cp_tensor.CPTensor((None, factors))
+
+
+def vector_to_pt(ptVector, ranknumb, tPrecision, ptFacLength, ptCore):
+    """Converts linear vector into partial tucker core and factors"""
+    modesPrecision = [tPrecision.shape[0], tPrecision.shape[3], tPrecision.shape[4], tPrecision.shape[5]]
+
+    nN = jnp.cumsum(np.array(modesPrecision) * ranknumb)
+    nN = jnp.insert(nN, 0, 0)
+
+    factors = [jnp.reshape(ptVector[nN[ii]:nN[ii + 1]], (modesPrecision[ii], ranknumb)) for ii in range(len(modesPrecision))]
+    ptNewFactors = tl.cp_tensor.CPTensor((None, factors))
+
+    ptcorelong = ptVector[ptFacLength::]
+    ptNewCore = ptcorelong.reshape(ptCore.shape[0],ptCore.shape[1],ptCore.shape[2],ptCore.shape[3],ptCore.shape[4],-1)
+
+    return ptNewFactors.factors, ptNewCore
 
 
 def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarray, nk: np.ndarray):
@@ -143,3 +167,15 @@ def maxloglik(facVector, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArra
     rebuildMeans = tl.cp_to_tensor(factorsguess)
     # Creating function that we want to minimize
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, tPrecision.to_numpy(), nk)
+
+def maxloglik_ptnnp(facVector, tPrecision, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.DataArray, cpVectorLength, ptFacLength, ptCore):
+    """Function used to rebuild tMeans from factors and maximize log-likelihood"""
+    rebuildnk = facVector[0:facInfo.shape[0]]
+    
+    factorsguess = vector_to_cp(facVector[facInfo.shape[0]:facInfo.shape[0]+cpVectorLength], facInfo.rank, facInfo.shape)
+    rebuildMeans = tl.cp_to_tensor(factorsguess)
+
+    rebuildPtFactors, rebuildPtCore = vector_to_pt(facVector[facInfo.shape[0]+cpVectorLength::], facInfo.rank, tPrecision, ptFacLength, ptCore)
+    rebuildPrecision = multi_mode_dot(rebuildPtCore, rebuildPtFactors, modes=[0, 3, 4, 5], transpose=False)
+    # Creating function that we want to minimize
+    return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, rebuildPrecision, rebuildnk)
