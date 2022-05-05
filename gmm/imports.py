@@ -24,7 +24,7 @@ def smallDF(fracCells: int):
     experimentcells = flowDF.groupby(by=gVars).size()
     flowDF[tCols] = flowDF.groupby(by=gVars)[tCols].transform(lambda x: x / np.std(x))  # Dividing by std per experiement
     for mark in transCols:
-        flowDF = flowDF[flowDF[mark] < flowDF[mark].quantile(.995)]  # Getting rid of outlier values
+        flowDF = flowDF[flowDF[mark] < flowDF[mark].quantile(0.995)]  # Getting rid of outlier values
     flowDF = flowDF.groupby(by=gVars).sample(n=fracCells).reset_index(drop=True)
     flowDF["Cell Type"] = flowDF["Cell Type"].replace({"None": 1, "Treg": 2, "Thelper": 3})
     flowDF["pSTAT5"] /= np.std(flowDF["pSTAT5"])  # For pSTAT5 only, dividing my std of all experiments
