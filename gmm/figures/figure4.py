@@ -2,6 +2,7 @@
 This creates Figure 4.
 """
 import numpy as np
+import seaborn as sns
 import tensorly as tl
 from scipy.optimize import minimize
 from jax.config import config
@@ -9,7 +10,8 @@ from jax import value_and_grad
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, cp_to_vector, tensorcovar_decomp, pt_to_vector, maxloglik_ptnnp
+from ..tensor import tensor_decomp, cp_to_vector, tensorcovar_decomp, pt_to_vector, maxloglik_ptnnp, vector_to_cp
+from tensorly.cp_tensor import cp_normalize
 
 
 config.update("jax_enable_x64", True)
@@ -18,7 +20,7 @@ config.update("jax_enable_x64", True)
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
-    ax, f = getSetup((10, 8), (2, 2))
+    ax, f = getSetup((10, 8), (3, 2))
 
     # Add subplot labels
     subplotLabel(ax)
@@ -57,5 +59,12 @@ def makeFigure():
     opt = minimize(func, totalVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50, "maxiter": 1000})
 
     tl.set_backend("numpy")
+    
+    maximizedvector = opt.x
+    maximizedfactors = vector_to_cp(maximizedvector[facInfo.shape[0] : facInfo.shape[0] + len(cpVector)], facInfo.rank, facInfo.shape)
+    maximizedfactors = cp_normalize(maximizedfactors)
+
+    for i in range(0, len(facInfo.shape)):
+        heatmap = sns.heatmap(data=maximizedfactors.factors[i], ax=ax[i], vmin=0, vmax=1, cmap="Blues")
 
     return f
