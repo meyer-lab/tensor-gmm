@@ -25,19 +25,19 @@ def makeFigure():
 
     # smallDF(Amount of cells per experiment): Xarray of each marker, cell and condition
     # Final Xarray has dimensions [Marker, Cell Number, Time, Dose, Ligand]
-    cellperexp = 20
+    cellperexp = 50
     zflowTensor, _ = smallDF(cellperexp)
 
     # probGM(Xarray, max cluster): Xarray [nk, means, covar] while using estimation gaussian parameters
     # tMeans[Cluster, Marker, Time, Dose, Ligand]
-    maxcluster = 3
+    maxcluster = 6
     nk, tMeans, tPrecision = probGMM(zflowTensor, maxcluster)
 
     # tensorcovar_decomp(precision, rank, nk):
     # [DF,core tensor, tensorfactors] creates DF of factors for different
     # conditions and output of decomposition
 
-    ranknumb = 2
+    ranknumb = 3
     _, facInfo = tensor_decomp(tMeans, ranknumb, "NNparafac")
 
     ptFactors, ptCore = tensorcovar_decomp(tPrecision, ranknumb)
@@ -46,16 +46,15 @@ def makeFigure():
 
     nkValues = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))
     cpVector = cp_to_vector(facInfo)
-    cpVectorLength = len(cpVector)
     totalVector = np.concatenate((nkValues, cpVector, vecptFacCore))
 
-    args = (tPrecision, facInfo, zflowTensor, cpVectorLength, ptFacLength, ptCore)
+    args = (tPrecision, facInfo, zflowTensor, len(cpVector), ptFacLength, ptCore)
 
     tl.set_backend("jax")
 
     func = value_and_grad(maxloglik_ptnnp)
 
-    opt = minimize(func, totalVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50})
+    opt = minimize(func, totalVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50, "maxiter": 1000})
 
     tl.set_backend("numpy")
 

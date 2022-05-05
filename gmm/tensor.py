@@ -168,5 +168,6 @@ def maxloglik_ptnnp(facVector, tPrecision, facInfo: tl.cp_tensor.CPTensor, zflow
     rebuildPtFactors, rebuildPtCore = vector_to_pt(facVector[facInfo.shape[0] + cpVectorLength : :], facInfo.rank, tPrecision, ptFacLength, ptCore)
     rebuildPrecision = multi_mode_dot(rebuildPtCore, rebuildPtFactors, modes=[0, 3, 4, 5], transpose=False)
     rebuildPrecision = jnp.abs(rebuildPrecision)  # TODO: Remove this eventually.
+    rebuildPrecision = (rebuildPrecision + np.swapaxes(rebuildPrecision, 1, 2)) / 2.0  # Enforce symmetry
     # Creating function that we want to minimize
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, rebuildPrecision, rebuildnk)
