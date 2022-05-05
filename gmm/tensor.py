@@ -160,14 +160,6 @@ def comparingGMMjax(X, tMeans, tPrecision, nk):
     return loglik
 
 
-def maxloglik(facVector, facInfo: tl.cp_tensor.CPTensor, tPrecision: xa.DataArray, zflowTensor: xa.DataArray):
-    """Function used to rebuild tMeans from factors and maximize log-likelihood"""
-    nk = facVector[0:facInfo.shape[0]]
-    factorsguess = vector_to_cp(facVector[facInfo.shape[0]::], facInfo.rank, facInfo.shape)
-    rebuildMeans = tl.cp_to_tensor(factorsguess)
-    # Creating function that we want to minimize
-    return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, tPrecision.to_numpy(), nk)
-
 def maxloglik_ptnnp(facVector, tPrecision, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.DataArray, cpVectorLength, ptFacLength, ptCore):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     rebuildnk = facVector[0:facInfo.shape[0]]

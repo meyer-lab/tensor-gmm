@@ -3,20 +3,13 @@ This creates Figure 5.
 """
 import numpy as np
 import tensorly as tl
-import pandas as pd
-import seaborn as sns
 from scipy.optimize import minimize
 from jax.config import config
 from jax import value_and_grad
 from .common import subplotLabel, getSetup
 from ..imports import smallDF
 from ..GMM import probGMM
-from ..tensor import tensor_decomp, cp_to_vector, maxloglik, tensorcovar_decomp, vector_to_cp, pt_to_vector, maxloglik_ptnnp, vector_to_pt
-from tensorly.decomposition import partial_tucker
-from tensorly.tucker_tensor import tucker_to_vec
-from tensorly.tenalg import multi_mode_dot
-from numpy.testing import assert_allclose
-import jax.numpy as jnp
+from ..tensor import tensor_decomp, cp_to_vector, tensorcovar_decomp, pt_to_vector, maxloglik_ptnnp
 
 
 config.update("jax_enable_x64", True)
@@ -65,6 +58,5 @@ def makeFigure():
     opt = minimize(func, totalVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50})
 
     tl.set_backend("numpy")
-
 
     return f
