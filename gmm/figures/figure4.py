@@ -38,11 +38,11 @@ def makeFigure():
     # conditions and output of decomposition
 
     ranknumb = 2
-    _, facInfo = tensor_decomp(tMeans, ranknumb,"NNparafac")
-   
+    _, facInfo = tensor_decomp(tMeans, ranknumb, "NNparafac")
+
     ptFactors, ptCore = tensorcovar_decomp(tPrecision, ranknumb, nk)
 
-    vecptFacCore, ptFacLength = pt_to_vector(ptFactors,ptCore)
+    vecptFacCore, ptFacLength = pt_to_vector(ptFactors, ptCore)
 
     nkValues = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))
     cpVector = cp_to_vector(facInfo)
