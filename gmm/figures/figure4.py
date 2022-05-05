@@ -1,5 +1,5 @@
 """
-This creates Figure 5.
+This creates Figure 4.
 """
 import numpy as np
 import tensorly as tl
