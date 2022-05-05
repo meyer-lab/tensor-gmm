@@ -33,7 +33,7 @@ def test_PT_to_vec():
     ptFactors, ptCore = tensorcovar_decomp(tPrecision, 2)
 
     ptVector, ptFacLength = pt_to_vector(ptFactors, ptCore)
-    ptNewFactors, ptNewCore = vector_to_pt(ptVector, 2, tPrecision, ptFacLength, ptCore):
+    ptNewFactors, ptNewCore = vector_to_pt(ptVector, 2, tPrecision, ptFacLength, ptCore)
 
     for ii in range(len(ptNewFactors)):
         assert_allclose(ptNewFactors[ii], ptFactors[ii])
