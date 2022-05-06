@@ -101,12 +101,12 @@ def vector_to_pt(ptVector, ranknumb, tPrecision, ptFacLength, ptCore):
     nN = jnp.insert(nN, 0, 0)
 
     factors = [jnp.reshape(ptVector[nN[ii] : nN[ii + 1]], (modesPrecision[ii], ranknumb)) for ii in range(len(modesPrecision))]
-    ptNewFactors = tl.cp_tensor.CPTensor((None, factors))
+    ptNewInfo= tl.cp_tensor.CPTensor((None, factors))
 
     ptcorelong = ptVector[ptFacLength::]
     ptNewCore = ptcorelong.reshape(ptCore.shape[0], ptCore.shape[1], ptCore.shape[2], ptCore.shape[3], ptCore.shape[4], -1)
 
-    return ptNewFactors.factors, ptNewCore
+    return ptNewInfo, ptNewCore
 
 
 def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarray, nk: np.ndarray):
@@ -166,7 +166,7 @@ def maxloglik_ptnnp(facVector, tPrecision, facInfo: tl.cp_tensor.CPTensor, zflow
     rebuildMeans = tl.cp_to_tensor(factorsguess)
 
     rebuildPtFactors, rebuildPtCore = vector_to_pt(facVector[facInfo.shape[0] + cpVectorLength : :], facInfo.rank, tPrecision, ptFacLength, ptCore)
-    rebuildPrecision = multi_mode_dot(rebuildPtCore, rebuildPtFactors, modes=[0, 3, 4, 5], transpose=False)
+    rebuildPrecision = multi_mode_dot(rebuildPtCore, rebuildPtFactors.factors, modes=[0, 3, 4, 5], transpose=False)
     rebuildPrecision = jnp.abs(rebuildPrecision)  # TODO: Remove this eventually.
     rebuildPrecision = (rebuildPrecision + np.swapaxes(rebuildPrecision, 1, 2)) / 2.0  # Enforce symmetry
     # Creating function that we want to minimize

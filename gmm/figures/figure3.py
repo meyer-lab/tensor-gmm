@@ -24,12 +24,12 @@ def makeFigure():
 
     # probGM(Xarray, max cluster): Xarray [nk, means, covar] while using estimation gaussian parameters
     # tMeans[Cluster, Marker, Time, Dose, Ligand]
-    maxcluster = 3
+    maxcluster = 6
     _, tMeans, _ = probGMM(zflowDF, maxcluster)
 
     # tensor_R2X(tensor means, maximum rank): [list of rankings,varexpl_NNP] ranking and variance explained
-    maxrank = 6
-    rankings, varexpl_NNP = tensor_R2X(tMeans, maxrank, "NNparafac")
+    ranknumb = 6
+    rankings, varexpl_NNP = tensor_R2X(tMeans, ranknumb, "NNparafac")
 
     ax[0].plot(rankings, varexpl_NNP, "r")
     xlabel = "Number of Components"
@@ -39,8 +39,7 @@ def makeFigure():
     # tensor_decomp(tensor means, rank, type of decomposition): [DF,tensor
     # factors/weights] creates DF of factors for different conditions and
     # output of decomposition
-    rank = 6
-    factors_NNP, facInfo = tensor_decomp(tMeans, rank, "NNparafac")
+    factors_NNP, facInfo = tensor_decomp(tMeans, maxrank, "NNparafac")
 
     for i in range(0, len(facInfo.shape)):
         heatmap = sns.heatmap(data=factors_NNP[i], ax=ax[i + 1], vmin=0, vmax=1, cmap="Blues")
