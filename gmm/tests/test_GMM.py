@@ -35,8 +35,8 @@ def test_PT_to_vec():
     ptVector, ptFacLength = pt_to_vector(ptFactors, ptCore)
     ptNewFactors, ptNewCore = vector_to_pt(ptVector, 2, tPrecision, ptFacLength, ptCore)
 
-    for ii in range(len(ptNewFactors)):
-        assert_allclose(ptNewFactors[ii], ptFactors[ii])
+    for ii in range(len(ptNewFactors.factors)):
+        assert_allclose(ptNewFactors.factors[ii], ptFactors[ii])
     
     assert_allclose(ptCore, ptNewCore)
 
