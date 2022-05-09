@@ -55,7 +55,7 @@ def makeFigure():
 
     func = value_and_grad(maxloglik_ptnnp)
 
-    opt = minimize(func, totalVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50, "maxiter": 10})
+    opt = minimize(func, totalVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50, "maxiter": 1000})
 
     tl.set_backend("numpy")
 
