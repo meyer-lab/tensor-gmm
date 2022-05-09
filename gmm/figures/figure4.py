@@ -46,7 +46,7 @@ def makeFigure():
     nkValues = np.exp(np.nanmean(np.log(nk), axis=(1, 2, 3)))
     totalVector = np.concatenate((nkValues, facVector))
 
-    args = (facInfo, zflowTensor, ptCore)
+    args = (facInfo, zflowTensor)
 
     tl.set_backend("jax")
 

@@ -71,7 +71,7 @@ def cp_pt_to_vector(facinfo: tl.cp_tensor.CPTensor, ptCore):
     return vec
 
 
-def vector_to_cp_pt(vectorIn, rank: int, shape: tuple, ptCore: np.ndarray):
+def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     """Converts linear vector to factors"""
     # Shape of tensor for means or precision matrix
     nN = jnp.cumsum(np.array(shape) * rank)
@@ -81,7 +81,7 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple, ptCore: np.ndarray):
     # Rebuidling factors and ranks
 
     factors_pt = [factors[0], factors[2], factors[3], factors[4]]
-    ptNewCore = vectorIn[nN[-1]::].reshape(*ptCore.shape)
+    ptNewCore = vectorIn[nN[-1]::].reshape(rank, shape[1], shape[1], rank, rank, rank)
 
     return tl.cp_tensor.CPTensor((None, factors)), factors_pt, ptNewCore
 
@@ -135,11 +135,11 @@ def comparingGMMjax(X, tMeans, tPrecision, nk):
     return loglik
 
 
-def maxloglik_ptnnp(facVector, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.DataArray, ptCore):
+def maxloglik_ptnnp(facVector, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.DataArray):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     rebuildnk = facVector[0 : facInfo.shape[0]]
 
-    factorsguess, rebuildPtFactors, rebuildPtCore = vector_to_cp_pt(facVector[facInfo.shape[0]::], facInfo.rank, facInfo.shape, ptCore)
+    factorsguess, rebuildPtFactors, rebuildPtCore = vector_to_cp_pt(facVector[facInfo.shape[0]::], facInfo.rank, facInfo.shape)
     rebuildMeans = tl.cp_to_tensor(factorsguess)
 
     rebuildPrecision = multi_mode_dot(rebuildPtCore, rebuildPtFactors, modes=[0, 3, 4, 5], transpose=False)
