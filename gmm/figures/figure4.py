@@ -61,6 +61,13 @@ def makeFigure():
 
     rebuildCpFactors, rebuildPtFactors, rebuildPtCore = vector_to_cp_pt(opt.x[facInfo.shape[0]::], facInfo.rank, facInfo.shape)
     maximizedCpInfo = cp_normalize(rebuildCpFactors)
+
+    ax[0].bar(np.arange(1,maxcluster+1),opt.x[0:facInfo.shape[0]])
+    xlabel = "Cluster"
+    ylabel = "NK Value"
+    ax[0].set(xlabel=xlabel, ylabel=ylabel)
+
+
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, ranknumb + 1)]
 
     maximizedFactors = []
@@ -68,7 +75,7 @@ def makeFigure():
         maximizedFactors.append(pd.DataFrame(maximizedCpInfo.factors[ii], columns=cmpCol, index=tMeans.coords[dd]))
 
     for i in range(0, len(facInfo.shape)):
-        heatmap = sns.heatmap(data= maximizedFactors[i], ax=ax[i], vmin=0, vmax=1, cmap="Blues")
+        heatmap = sns.heatmap(data= maximizedFactors[i], ax=ax[i+1], vmin=0, vmax=1, cmap="Blues")
 
 
     return f
