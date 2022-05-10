@@ -6,7 +6,9 @@ from jax.config import config
 import tensorly as tl
 import xarray as xa
 from sklearn.mixture import GaussianMixture
+from jax import value_and_grad
 
+from scipy.optimize import minimize, Bounds
 from tensorly.decomposition import partial_tucker, non_negative_parafac
 from tensorly.cp_tensor import cp_normalize
 from tensorly.tenalg import multi_mode_dot
@@ -62,8 +64,11 @@ def cp_pt_to_vector(facinfo: tl.cp_tensor.CPTensor, ptCore):
 
     for fac in facinfo.factors:
         vec = np.append(vec, fac.flatten())
+        print(len(vec))
+
 
     vec = np.append(vec, ptCore.flatten())
+
 
     return vec
 
@@ -81,6 +86,21 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     ptNewCore = vectorIn[nN[-1] : :].reshape(rank, shape[1], shape[1], rank, rank, rank)
 
     return tl.cp_tensor.CPTensor((None, factors)), factors_pt, ptNewCore
+
+
+def vector_guess(zflowTensor, ranknumb, maxcluster):
+    factortotal = 0 
+
+    for i, a in enumerate(zflowTensor.dims):
+        factortotal +=len(zflowTensor.coords[a])*ranknumb
+
+    factortotal = factortotal - (len(zflowTensor.coords["Cell"])*ranknumb) + (ranknumb*maxcluster) + ((ranknumb**4)*(
+                len(markerslist)**2)) + maxcluster
+
+    rand_vec = np.random.random(factortotal)
+
+    return rand_vec
+
 
 
 def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarray, nk: np.ndarray):
@@ -143,3 +163,32 @@ def maxloglik_ptnnp(facVector, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.D
     rebuildPrecision = (rebuildPrecision + np.swapaxes(rebuildPrecision, 1, 2)) / 2.0  # Enforce symmetry
     # Creating function that we want to minimize
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, rebuildPrecision, rebuildnk)
+
+
+
+def minimize_func(totalVector,facInfo,zflowTensor,tMeans):
+
+    args = (facInfo, zflowTensor)
+
+    tl.set_backend("jax")
+
+    func = value_and_grad(maxloglik_ptnnp)
+
+    bnds = Bounds(np.zeros_like(totalVector), np.full_like(totalVector, np.inf), keep_feasible=True)
+    opt = minimize(func, totalVector, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 1, "maxiter": 500})
+
+    tl.set_backend("numpy")
+
+    rebuildCpFactors, _, ptNewCore = vector_to_cp_pt(opt.x[facInfo.shape[0] : :], facInfo.rank, facInfo.shape)
+    maximizedCpInfo = cp_normalize(rebuildCpFactors)
+    maximizedNK = opt.x[0 : facInfo.shape[0]]
+
+    cmpCol = [f"Cmp. {i}" for i in np.arange(1, facInfo.rank + 1)]
+
+    maximizedFactors = []
+    for ii, dd in enumerate(tMeans.dims):
+        maximizedFactors.append(pd.DataFrame(maximizedCpInfo.factors[ii], columns=cmpCol, index=tMeans.coords[dd]))
+
+
+    return  maximizedNK, maximizedFactors, ptNewCore
+
