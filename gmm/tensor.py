@@ -71,14 +71,14 @@ def cp_pt_to_vector(facinfo: tl.cp_tensor.CPTensor, ptCore):
 def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     """Converts linear vector to factors"""
     # Shape of tensor for means or precision matrix
-    nN = jnp.cumsum(np.array(shape) * rank)
-    nN = jnp.insert(nN, 0, 0)
+    nN = np.cumsum(np.array(shape) * rank)
+    nN = np.insert(nN, 0, 0)
 
     factors = [jnp.reshape(vectorIn[nN[ii] : nN[ii + 1]], (shape[ii], rank)) for ii in range(len(shape))]
     # Rebuidling factors and ranks
 
     factors_pt = [factors[0], factors[2], factors[3], factors[4]]
-    ptNewCore = vectorIn[nN[-1]::].reshape(rank, shape[1], shape[1], rank, rank, rank)
+    ptNewCore = vectorIn[nN[-1] : :].reshape(rank, shape[1], shape[1], rank, rank, rank)
 
     return tl.cp_tensor.CPTensor((None, factors)), factors_pt, ptNewCore
 
@@ -136,7 +136,7 @@ def maxloglik_ptnnp(facVector, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.D
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     rebuildnk = facVector[0 : facInfo.shape[0]]
 
-    factorsguess, rebuildPtFactors, rebuildPtCore = vector_to_cp_pt(facVector[facInfo.shape[0]::], facInfo.rank, facInfo.shape)
+    factorsguess, rebuildPtFactors, rebuildPtCore = vector_to_cp_pt(facVector[facInfo.shape[0] : :], facInfo.rank, facInfo.shape)
     rebuildMeans = tl.cp_to_tensor(factorsguess)
 
     rebuildPrecision = multi_mode_dot(rebuildPtCore, rebuildPtFactors, modes=[0, 3, 4, 5], transpose=False)

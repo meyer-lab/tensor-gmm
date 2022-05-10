@@ -18,6 +18,16 @@ from tensorly.cp_tensor import cp_normalize
 config.update("jax_enable_x64", True)
 
 
+def reorient_factors(tFac):
+    """This function ensures that factors are negative on at most one direction."""
+    for ii in [4, 3, 2, 1]:
+        tMeans = np.sign(np.mean(tFac.factors[ii], axis=0))
+        tFac.factors[ii - 1] *= tMeans[np.newaxis, :]
+        tFac.factors[ii] *= tMeans[np.newaxis, :]
+
+    return tFac
+
+
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
@@ -56,20 +66,20 @@ def makeFigure():
     func = value_and_grad(maxloglik_ptnnp)
 
     lb = np.full_like(totalVector, -np.inf)
-    lb[0:nkValues.size] = 0.0
+    lb[0 : nkValues.size] = 0.0
     bnds = Bounds(lb, np.full_like(totalVector, np.inf), keep_feasible=True)
-    opt = minimize(func, totalVector, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50, "maxiter": 1000})
+    opt = minimize(func, totalVector, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50, "maxiter": 500})
 
     tl.set_backend("numpy")
 
-    rebuildCpFactors, rebuildPtFactors, rebuildPtCore = vector_to_cp_pt(opt.x[facInfo.shape[0]::], facInfo.rank, facInfo.shape)
+    rebuildCpFactors, _, _ = vector_to_cp_pt(opt.x[facInfo.shape[0] : :], facInfo.rank, facInfo.shape)
     maximizedCpInfo = cp_normalize(rebuildCpFactors)
+    maximizedCpInfo = reorient_factors(maximizedCpInfo)
 
-    ax[0].bar(np.arange(1,maxcluster+1),opt.x[0:facInfo.shape[0]])
+    ax[0].bar(np.arange(1, maxcluster + 1), opt.x[0 : facInfo.shape[0]])
     xlabel = "Cluster"
     ylabel = "NK Value"
     ax[0].set(xlabel=xlabel, ylabel=ylabel)
-
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, ranknumb + 1)]
 
@@ -78,7 +88,6 @@ def makeFigure():
         maximizedFactors.append(pd.DataFrame(maximizedCpInfo.factors[ii], columns=cmpCol, index=tMeans.coords[dd]))
 
     for i in range(0, len(facInfo.shape)):
-        heatmap = sns.heatmap(data= maximizedFactors[i], ax=ax[i+1], vmin=0, vmax=1, cmap="Blues")
-
+        heatmap = sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 1])
 
     return f
