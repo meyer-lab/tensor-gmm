@@ -34,7 +34,7 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int):
 
 def tensorcovar_decomp(tCovar: xa.DataArray, ranknumb: int):
     """Runs partial tucker decomposition on covariance tensor"""
-    ptCore, ptFactors = partial_tucker(tCovar.to_numpy(), modes=[0, 3, 4, 5], rank=ranknumb)
+    ptCore, ptFactors = partial_tucker(tCovar.to_numpy(), modes=[0, 3, 4, 5], rank=[ranknumb] * 4)
 
     return ptFactors, ptCore
 
