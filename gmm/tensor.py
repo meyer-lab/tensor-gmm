@@ -66,9 +66,7 @@ def cp_pt_to_vector(facinfo: tl.cp_tensor.CPTensor, ptCore):
         vec = np.append(vec, fac.flatten())
         print(len(vec))
 
-
     vec = np.append(vec, ptCore.flatten())
-
 
     return vec
 
@@ -89,18 +87,22 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
 
 
 def vector_guess(zflowTensor, ranknumb, maxcluster):
-    factortotal = 0 
+    factortotal = 0
 
     for i, a in enumerate(zflowTensor.dims):
-        factortotal +=len(zflowTensor.coords[a])*ranknumb
+        factortotal += len(zflowTensor.coords[a]) * ranknumb
 
-    factortotal = factortotal - (len(zflowTensor.coords["Cell"])*ranknumb) + (ranknumb*maxcluster) + ((ranknumb**4)*(
-                len(markerslist)**2)) + maxcluster
+    factortotal = (
+        factortotal
+        - (len(zflowTensor.coords["Cell"]) * ranknumb)
+        + (ranknumb * maxcluster)
+        + ((ranknumb**4) * (len(markerslist) ** 2))
+        + maxcluster
+    )
 
     rand_vec = np.random.random(factortotal)
 
     return rand_vec
-
 
 
 def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarray, nk: np.ndarray):
@@ -165,8 +167,7 @@ def maxloglik_ptnnp(facVector, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.D
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, rebuildPrecision, rebuildnk)
 
 
-
-def minimize_func(totalVector,facInfo,zflowTensor,tMeans):
+def minimize_func(totalVector, facInfo, zflowTensor, tMeans):
 
     args = (facInfo, zflowTensor)
 
@@ -189,6 +190,4 @@ def minimize_func(totalVector,facInfo,zflowTensor,tMeans):
     for ii, dd in enumerate(tMeans.dims):
         maximizedFactors.append(pd.DataFrame(maximizedCpInfo.factors[ii], columns=cmpCol, index=tMeans.coords[dd]))
 
-
-    return  maximizedNK, maximizedFactors, ptNewCore
-
+    return maximizedNK, maximizedFactors, ptNewCore

@@ -40,7 +40,7 @@ def makeFigure():
     _, tMeans, _ = probGMM(zflowTensor, maxcluster)
     _, facInfo = tensor_decomp(tMeans, ranknumb)
 
-    maximizedNK, maximizedFactors, ptNewCore = minimize_func(vectorGuess,facInfo,zflowTensor,tMeans)
+    maximizedNK, maximizedFactors, ptNewCore = minimize_func(vectorGuess, facInfo, zflowTensor, tMeans)
 
     ax[0].bar(np.arange(1, maxcluster + 1), maximizedNK)
     xlabel = "Cluster"
