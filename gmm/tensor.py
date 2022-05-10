@@ -7,7 +7,7 @@ import tensorly as tl
 import xarray as xa
 from sklearn.mixture import GaussianMixture
 
-from tensorly.decomposition import non_negative_parafac, parafac, partial_tucker
+from tensorly.decomposition import parafac, partial_tucker
 from tensorly.cp_tensor import cp_normalize
 from tensorly.tenalg import multi_mode_dot
 
@@ -15,14 +15,11 @@ markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 config.update("jax_enable_x64", True)
 
 
-def tensor_decomp(tensor: xa.DataArray, ranknumb: int, tensortype):
+def tensor_decomp(tensor: xa.DataArray, ranknumb: int):
     """Runs tensor decomposition on means tensor."""
 
     # Need to input the tMeans as numpy tensor
-    if tensortype == "NNparafac":
-        fac = non_negative_parafac(np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
-    else:
-        fac = parafac(np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
+    fac = parafac(np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, ranknumb + 1)]
     fac = cp_normalize(fac)  # Normalizing factors
@@ -42,13 +39,13 @@ def tensorcovar_decomp(tCovar: xa.DataArray, ranknumb: int):
     return ptFactors, ptCore
 
 
-def tensor_R2X(tensor: xa.DataArray, maxrank: int, tensortype):
+def tensor_R2X(tensor: xa.DataArray, maxrank: int):
     """Calculates the R2X value even where NaN values are present"""
     rank = np.arange(1, maxrank + 1)
     varexpl = np.empty(len(rank))
 
     for i in range(len(rank)):
-        _, facinfo = tensor_decomp(tensor, rank[i], tensortype)
+        _, facinfo = tensor_decomp(tensor, rank[i])
         vTop, vBottom = 0.0, 0.0
         tMask = np.isfinite(tensor)
         vTop += np.sum(np.square(tl.cp_to_tensor(facinfo) * tMask - np.nan_to_num(tensor)))

@@ -3,7 +3,7 @@ This creates Figure 4.
 """
 import numpy as np
 import tensorly as tl
-from scipy.optimize import minimize
+from scipy.optimize import minimize, Bounds
 from jax.config import config
 from jax import value_and_grad
 from .common import subplotLabel, getSetup
@@ -38,7 +38,7 @@ def makeFigure():
     # conditions and output of decomposition
 
     ranknumb = 3
-    _, facInfo = tensor_decomp(tMeans, ranknumb, "NNparafac")
+    _, facInfo = tensor_decomp(tMeans, ranknumb)
 
     ptFactors, ptCore = tensorcovar_decomp(tPrecision, ranknumb)
 
@@ -54,7 +54,10 @@ def makeFigure():
 
     func = value_and_grad(maxloglik_ptnnp)
 
-    opt = minimize(func, totalVector, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50, "maxiter": 1000})
+    lb = np.full_like(totalVector, -np.inf)
+    lb[0:nkValues.size] = 0.0
+    bnds = Bounds(lb, np.full_like(totalVector, np.inf), keep_feasible=True)
+    opt = minimize(func, totalVector, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 50, "maxiter": 1000})
 
     tl.set_backend("numpy")
 
