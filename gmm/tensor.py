@@ -7,7 +7,7 @@ import tensorly as tl
 import xarray as xa
 from sklearn.mixture import GaussianMixture
 
-from tensorly.decomposition import parafac, partial_tucker
+from tensorly.decomposition import partial_tucker, non_negative_parafac
 from tensorly.cp_tensor import cp_normalize
 from tensorly.tenalg import multi_mode_dot
 
@@ -19,7 +19,7 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int):
     """Runs tensor decomposition on means tensor."""
 
     # Need to input the tMeans as numpy tensor
-    fac = parafac(np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
+    fac = non_negative_parafac(np.nan_to_num(tensor.to_numpy()), mask=np.isfinite(tensor.to_numpy()), rank=ranknumb)
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, ranknumb + 1)]
     fac = cp_normalize(fac)  # Normalizing factors
@@ -140,7 +140,6 @@ def maxloglik_ptnnp(facVector, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.D
     rebuildMeans = tl.cp_to_tensor(factorsguess)
 
     rebuildPrecision = multi_mode_dot(rebuildPtCore, rebuildPtFactors, modes=[0, 3, 4, 5], transpose=False)
-    rebuildPrecision = jnp.abs(rebuildPrecision)  # TODO: Remove this eventually.
     rebuildPrecision = (rebuildPrecision + np.swapaxes(rebuildPrecision, 1, 2)) / 2.0  # Enforce symmetry
     # Creating function that we want to minimize
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, rebuildPrecision, rebuildnk)
