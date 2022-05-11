@@ -85,7 +85,8 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     return tl.cp_tensor.CPTensor((None, factors)), factors_pt, ptNewCore
 
 
-def vector_guess(zflowTensor, rank: int, n_cluster: int):
+def vector_guess(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
+    """Predetermines total vector that will be maximized for NK, factors and core"""
     factortotal = np.sum(zflowTensor.shape) * rank
 
     factortotal = (
@@ -148,7 +149,7 @@ def comparingGMMjax(X, tMeans, tPrecision, nk):
     return loglik
 
 
-def maxloglik_ptnnp(facVector, shape, rank, zflowTensor: xa.DataArray):
+def maxloglik_ptnnp(facVector, shape, rank:int, zflowTensor: xa.DataArray):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     rebuildnk = facVector[0 : shape[0]]
 
@@ -162,6 +163,7 @@ def maxloglik_ptnnp(facVector, shape, rank, zflowTensor: xa.DataArray):
 
 
 def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
+    """Function used to minimize loglikelihood to obtain NK, factors and core of Cp and Pt"""
     x0 = vector_guess(zflowTensor, rank, n_cluster)
 
     times = zflowTensor.coords["Time"]
