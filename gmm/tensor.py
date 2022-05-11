@@ -127,7 +127,7 @@ def comparingGMMjax(X, tMeans, tPrecision, nk):
 
     mp = jnp.einsum("ijklm,ijoklm->ioklm", tMeans, tPrecision)
     Xp = jnp.einsum("jiklm,njoklm->inoklm", X, tPrecision)
-    log_prob = jnp.sum(jnp.square(Xp - mp[jnp.newaxis, :, :, :, :, :]), axis=2)
+    log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :, :, :], axis=2))
     log_prob = -0.5 * (X.shape[0] * jnp.log(2 * jnp.pi) + log_prob)
 
     # The determinant of the precision matrix from the Cholesky decomposition
