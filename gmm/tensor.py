@@ -6,7 +6,7 @@ from jax.config import config
 import tensorly as tl
 import xarray as xa
 from sklearn.mixture import GaussianMixture
-from jax import value_and_grad
+from jax import value_and_grad, grad
 
 from scipy.optimize import minimize, Bounds
 from tensorly.decomposition import partial_tucker, non_negative_parafac
@@ -64,7 +64,6 @@ def cp_pt_to_vector(facinfo: tl.cp_tensor.CPTensor, ptCore):
 
     for fac in facinfo.factors:
         vec = np.append(vec, fac.flatten())
-        print(len(vec))
 
     vec = np.append(vec, ptCore.flatten())
 
@@ -180,8 +179,11 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
 
     func = value_and_grad(maxloglik_ptnnp)
 
+    def hvp(x, v, *args):
+        return grad(lambda x: jnp.vdot(grad(maxloglik_ptnnp)(x, *args), v))(x)
+
     bnds = Bounds(np.zeros_like(x0), np.full_like(x0, np.inf), keep_feasible=True)
-    opt = minimize(func, x0, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 10, "maxiter": 2000})
+    opt = minimize(func, x0, bounds=bnds, jac=True, hessp=hvp, method="trust-constr", args=args, options={"verbose": 2, "maxiter": 50})
 
     tl.set_backend("numpy")
 

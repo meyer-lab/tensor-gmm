@@ -2,7 +2,6 @@
 This creates Figure 4.
 """
 import numpy as np
-import xarray as xa
 import seaborn as sns
 from jax.config import config
 from .common import subplotLabel, getSetup
