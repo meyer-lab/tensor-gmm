@@ -7,8 +7,7 @@ import seaborn as sns
 from jax.config import config
 from .common import subplotLabel, getSetup
 from gmm.imports import smallDF
-from gmm.tensor import minimize_func, vector_guess
-from gmm.tensor import markerslist
+from gmm.tensor import minimize_func
 
 
 config.update("jax_enable_x64", True)
@@ -27,26 +26,9 @@ def makeFigure():
     cellperexp = 200
     zflowTensor, _ = smallDF(cellperexp)
 
-    # probGM(Xarray, max cluster): Xarray [nk, means, covar] while using estimation gaussian parameters
-    # tMeans[Cluster, Marker, Time, Dose, Ligand]
-    maxcluster = 6
-    ranknumb = 3
-    vectorGuess = vector_guess(zflowTensor, ranknumb, maxcluster)
+    maximizedNK, maximizedFactors, _ = minimize_func(zflowTensor, rank=3, n_cluster=6)
 
-    times = zflowTensor.coords["Time"]
-    doses = zflowTensor.coords["Dose"]
-    ligand = zflowTensor.coords["Ligand"]
-
-    clustArray = np.arange(1, maxcluster + 1)
-    commonSize = (len(times), len(doses), len(ligand))
-    commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
-
-    tMeans = xa.DataArray(np.full((maxcluster, len(markerslist), *commonSize), np.nan),
-                         coords={"Cluster": clustArray, "Markers": markerslist, **commonDims})
-
-    maximizedNK, maximizedFactors, _ = minimize_func(vectorGuess, ranknumb, zflowTensor, tMeans)
-
-    ax[0].bar(np.arange(1, maxcluster + 1), maximizedNK)
+    ax[0].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
     xlabel = "Cluster"
     ylabel = "NK Value"
     ax[0].set(xlabel=xlabel, ylabel=ylabel)

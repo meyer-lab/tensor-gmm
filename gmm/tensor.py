@@ -86,23 +86,18 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     return tl.cp_tensor.CPTensor((None, factors)), factors_pt, ptNewCore
 
 
-def vector_guess(zflowTensor, ranknumb, maxcluster):
-    factortotal = 0
-
-    for i, a in enumerate(zflowTensor.dims):
-        factortotal += len(zflowTensor.coords[a]) * ranknumb
+def vector_guess(zflowTensor, rank: int, n_cluster: int):
+    factortotal = np.sum(zflowTensor.shape) * rank
 
     factortotal = (
         factortotal
-        - (len(zflowTensor.coords["Cell"]) * ranknumb)
-        + (ranknumb * maxcluster)
-        + ((ranknumb**4) * (len(markerslist) ** 2))
-        + maxcluster
+        - (len(zflowTensor.coords["Cell"]) * rank)
+        + (rank * n_cluster)
+        + ((rank**4) * (len(markerslist) ** 2))
+        + n_cluster
     )
 
-    rand_vec = np.random.random(factortotal)
-
-    return rand_vec
+    return np.random.lognormal(mean=-1.0, size=factortotal)
 
 
 def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarray, nk: np.ndarray):
@@ -167,27 +162,37 @@ def maxloglik_ptnnp(facVector, shape, rank, zflowTensor: xa.DataArray):
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, rebuildPrecision, rebuildnk)
 
 
-def minimize_func(totalVector, rank, zflowTensor, tMeans):
+def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
+    x0 = vector_guess(zflowTensor, rank, n_cluster)
 
-    args = (tMeans.shape, rank, zflowTensor)
+    times = zflowTensor.coords["Time"]
+    doses = zflowTensor.coords["Dose"]
+    ligand = zflowTensor.coords["Ligand"]
+
+    clustArray = np.arange(1, n_cluster + 1)
+    meanShape = (n_cluster, len(markerslist), len(times), len(doses), len(ligand))
+    commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
+    coords={"Cluster": clustArray, "Markers": markerslist, **commonDims}
+
+    args = (meanShape, rank, zflowTensor)
 
     tl.set_backend("jax")
 
     func = value_and_grad(maxloglik_ptnnp)
 
-    bnds = Bounds(np.zeros_like(totalVector), np.full_like(totalVector, np.inf), keep_feasible=True)
-    opt = minimize(func, totalVector, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 1, "maxiter": 2000})
+    bnds = Bounds(np.zeros_like(x0), np.full_like(x0, np.inf), keep_feasible=True)
+    opt = minimize(func, x0, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 10, "maxiter": 2000})
 
     tl.set_backend("numpy")
 
-    rebuildCpFactors, _, ptNewCore = vector_to_cp_pt(opt.x[tMeans.shape[0] : :], rank, tMeans.shape)
+    rebuildCpFactors, _, ptNewCore = vector_to_cp_pt(opt.x[n_cluster : :], rank, meanShape)
     maximizedCpInfo = cp_normalize(rebuildCpFactors)
-    maximizedNK = opt.x[0 : tMeans.shape[0]]
+    maximizedNK = opt.x[0 : n_cluster]
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
 
     maximizedFactors = []
-    for ii, dd in enumerate(tMeans.dims):
-        maximizedFactors.append(pd.DataFrame(maximizedCpInfo.factors[ii], columns=cmpCol, index=tMeans.coords[dd]))
+    for ii, key in enumerate(coords):
+        maximizedFactors.append(pd.DataFrame(maximizedCpInfo.factors[ii], columns=cmpCol, index=coords[key]))
 
     return maximizedNK, maximizedFactors, ptNewCore
