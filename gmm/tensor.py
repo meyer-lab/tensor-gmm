@@ -6,10 +6,10 @@ from jax.config import config
 import tensorly as tl
 import xarray as xa
 from sklearn.mixture import GaussianMixture
-from jax import value_and_grad, grad
+from jax import value_and_grad
 
-from scipy.optimize import minimize, Bounds
-from tensorly.decomposition import partial_tucker, non_negative_parafac
+from scipy.optimize import minimize
+from tensorly.decomposition import non_negative_parafac
 from tensorly.cp_tensor import cp_normalize
 from tensorly.tenalg import multi_mode_dot
 
@@ -32,13 +32,6 @@ def tensor_decomp(tensor: xa.DataArray, ranknumb: int):
         # For each dimension in tensor, have a specific ranking for each parameter
 
     return dfs, fac
-
-
-def tensorcovar_decomp(tCovar: xa.DataArray, ranknumb: int):
-    """Runs partial tucker decomposition on covariance tensor"""
-    ptCore, ptFactors = partial_tucker(tCovar.to_numpy(), modes=[0, 3, 4, 5], rank=[ranknumb] * 4)
-
-    return ptFactors, ptCore
 
 
 def tensor_R2X(tensor: xa.DataArray, maxrank: int):
