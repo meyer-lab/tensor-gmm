@@ -93,6 +93,21 @@ def vector_guess(shape: tuple, rank: int):
     return np.random.normal(loc=-1.0, size=factortotal)
 
 
+def vector_guess(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
+    """Predetermines total vector that will be maximized for NK, factors and core"""
+    factortotal = np.sum(zflowTensor.shape) * rank
+
+    factortotal = (
+        factortotal
+        - (len(zflowTensor.coords["Cell"]) * rank)
+        + (rank * n_cluster)
+        + ((rank**4) * (len(markerslist) ** 2))
+        + n_cluster
+    )
+
+    return np.random.lognormal(mean=-1.0, size=factortotal)
+
+
 def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarray, nk: np.ndarray):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
     to determine the max log-likelihood"""
