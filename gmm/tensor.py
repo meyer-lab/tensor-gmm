@@ -154,11 +154,11 @@ def comparingGMMjax(X, tMeans, tPrecision, nk):
     return loglik
 
 
-def maxloglik_ptnnp(facVector, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.DataArray):
+def maxloglik_ptnnp(facVector, shape, rank, zflowTensor: xa.DataArray):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
-    rebuildnk = facVector[0 : facInfo.shape[0]]
+    rebuildnk = facVector[0 : shape[0]]
 
-    factorsguess, rebuildPtFactors, rebuildPtCore = vector_to_cp_pt(facVector[facInfo.shape[0] : :], facInfo.rank, facInfo.shape)
+    factorsguess, rebuildPtFactors, rebuildPtCore = vector_to_cp_pt(facVector[shape[0] : :], rank, shape)
     rebuildMeans = tl.cp_to_tensor(factorsguess)
 
     rebuildPrecision = multi_mode_dot(rebuildPtCore, rebuildPtFactors, modes=[0, 3, 4, 5], transpose=False)
@@ -167,24 +167,24 @@ def maxloglik_ptnnp(facVector, facInfo: tl.cp_tensor.CPTensor, zflowTensor: xa.D
     return -comparingGMMjax(zflowTensor.to_numpy(), rebuildMeans, rebuildPrecision, rebuildnk)
 
 
-def minimize_func(totalVector, facInfo, zflowTensor, tMeans):
+def minimize_func(totalVector, rank, zflowTensor, tMeans):
 
-    args = (facInfo, zflowTensor)
+    args = (tMeans.shape, rank, zflowTensor)
 
     tl.set_backend("jax")
 
     func = value_and_grad(maxloglik_ptnnp)
 
     bnds = Bounds(np.zeros_like(totalVector), np.full_like(totalVector, np.inf), keep_feasible=True)
-    opt = minimize(func, totalVector, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 1, "maxiter": 500})
+    opt = minimize(func, totalVector, bounds=bnds, jac=True, method="L-BFGS-B", args=args, options={"iprint": 1, "maxiter": 2000})
 
     tl.set_backend("numpy")
 
-    rebuildCpFactors, _, ptNewCore = vector_to_cp_pt(opt.x[facInfo.shape[0] : :], facInfo.rank, facInfo.shape)
+    rebuildCpFactors, _, ptNewCore = vector_to_cp_pt(opt.x[tMeans.shape[0] : :], rank, tMeans.shape)
     maximizedCpInfo = cp_normalize(rebuildCpFactors)
-    maximizedNK = opt.x[0 : facInfo.shape[0]]
+    maximizedNK = opt.x[0 : tMeans.shape[0]]
 
-    cmpCol = [f"Cmp. {i}" for i in np.arange(1, facInfo.rank + 1)]
+    cmpCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
 
     maximizedFactors = []
     for ii, dd in enumerate(tMeans.dims):
