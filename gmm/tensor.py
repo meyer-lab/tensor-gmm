@@ -173,11 +173,12 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
     func = value_and_grad(maxloglik_ptnnp)
 
     x0 = vector_guess(meanShape, rank)
-    opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options={"maxls": 200, "iprint": 50, "maxiter": 2000})
+    opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options={"maxls": 200, "iprint": 50, "maxiter": 50})
 
     tl.set_backend("numpy")
 
     maximizedNK, rebuildCpFactors, _, ptNewCore = vector_to_cp_pt(opt.x, rank, meanShape)
+    maxloglik = maxloglik_ptnnp(opt.x, meanShape, rank, zflowTensor)
     maximizedCpInfo = cp_normalize(rebuildCpFactors)
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
@@ -186,4 +187,4 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
     for ii, key in enumerate(coords):
         maximizedFactors.append(pd.DataFrame(maximizedCpInfo.factors[ii], columns=cmpCol, index=coords[key]))
 
-    return maximizedNK, maximizedFactors, ptNewCore
+    return maximizedNK, maximizedFactors, ptNewCore, maxloglik
