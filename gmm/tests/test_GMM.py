@@ -23,7 +23,8 @@ def test_CP_to_vec():
     meanShape = (6, 5, 4, 12, 8)
     x0 = vector_guess(meanShape, rank=3)
 
-    built = vector_to_cp_pt(x0, 3, meanShape)
+    built = vector_to_cp_pt(x0, 3, meanShape, enforceSPD=False)
+    vector_to_cp_pt(x0, 3, meanShape, enforceSPD=True)
     out_vec = cp_pt_to_vector(*built)
 
     # Check that we can get a likelihood

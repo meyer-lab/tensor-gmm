@@ -65,7 +65,7 @@ def cp_pt_to_vector(nk, facinfo: tl.cp_tensor.CPTensor, factors_pt, ptCore):
     return np.log(vec)
 
 
-def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
+def vector_to_cp_pt(vectorIn, rank: int, shape: tuple, enforceSPD=True):
     """Converts linear vector to factors"""
     vectorIn = jnp.exp(vectorIn)
     rebuildnk = vectorIn[0 : shape[0]]
@@ -79,9 +79,22 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     factors = [jnp.reshape(vectorIn[nN[ii] : nN[ii + 1]], (shape[ii], rank)) for ii in range(len(shape))]
     # Rebuidling factors and ranks
 
-    precFactor = vectorIn[nN[-2] : nN[-1]].reshape(shape[1], shape[1], rank)
+    precSym = vectorIn[nN[-2] : nN[-1]].reshape(shape[1], shape[1], rank)
 
-    factors_pt = [factors[0], precFactor, factors[2], factors[3], factors[4]]
+    if enforceSPD:
+        precSym = (precSym + jnp.swapaxes(precSym, 0, 1)) / 2.0  # Enforce symmetry
+
+        # Compute the symmetric polar factor of B. Call it H.
+        # Clearly H is itself SPD.
+        for ii in range(precSym.shape[2]):
+            _, S, V = jnp.linalg.svd(precSym[:, :, ii], full_matrices=False)
+            precSymH = V @ S @ V.T
+            # get Ahat in the above formula
+            precSym.at[:, :, ii].set((precSym[:, :, ii] + precSymH) / 2)
+
+        precSym = (precSym + jnp.swapaxes(precSym, 0, 1)) / 2.0  # Enforce symmetry
+
+    factors_pt = [factors[0], precSym, factors[2], factors[3], factors[4]]
     ptNewCore = vectorIn[nN[-1] : :].reshape(rank, rank, rank, rank, rank)
 
     return rebuildnk, tl.cp_tensor.CPTensor((None, factors)), factors_pt, ptNewCore
@@ -147,8 +160,7 @@ def maxloglik_ptnnp(facVector, shape: tuple, rank: int, zflowTensor: xa.DataArra
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     nk, meanFact, ptFact, ptCore = vector_to_cp_pt(facVector, rank, shape)
 
-    precSym = (ptFact[1] + jnp.swapaxes(ptFact[1], 0, 1)) / 2.0  # Enforce symmetry
-    ptCoreFull = jnp.einsum("ijk,lkmno->lijmno", precSym, ptCore)
+    ptCoreFull = jnp.einsum("ijk,lkmno->lijmno", ptFact[1], ptCore)
     ptBuilt = multi_mode_dot(ptCoreFull, [ptFact[0], ptFact[2], ptFact[3], ptFact[4]], modes=[0, 3, 4, 5], transpose=False)
 
     # Creating function that we want to minimize
