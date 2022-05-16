@@ -36,4 +36,3 @@ def makeFigure():
         sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 1])
 
     return f
-

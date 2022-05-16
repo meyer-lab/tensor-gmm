@@ -176,7 +176,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     clustArray = np.arange(1, n_cluster + 1)
     meanShape = (n_cluster, len(markerslist), len(times), len(doses), len(ligand))
     commonDims = {"Time": times, "Dose": doses, "Ligand": ligand}
-    coords={"Cluster": clustArray, "Markers": markerslist, **commonDims}
+    coords = {"Cluster": clustArray, "Markers": markerslist, **commonDims}
 
     args = (meanShape, rank, zflowTensor.to_numpy())
 
