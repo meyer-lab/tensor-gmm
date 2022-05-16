@@ -25,7 +25,7 @@ def makeFigure():
     # Final Xarray has dimensions [Marker, Cell Number, Time, Dose, Ligand]
     cellperexp = 200
     ranknumb = np.arange(1, 6)
-    n_cluster = np.arange(1, 15)
+    n_cluster = np.arange(2, 8)
     zflowTensor, _ = smallDF(cellperexp)
 
     # maxloglikDF = pd.DataFrame(columns=["Rank", "Cluster", "MaxLoglik"])
@@ -35,7 +35,7 @@ def makeFigure():
         row = pd.DataFrame()
         row["Rank"] = ["Rank:" + str(ranknumb[i])]
         for j in range(len(n_cluster)):
-            _, _, _, loglik = minimize_func(zflowTensor, ranknumb[i], n_cluster[j], maxiter=200)
+            _, _, _, loglik = minimize_func(zflowTensor, ranknumb[i], n_cluster[j], maxiter=1000)
             row["Cluster:" + str(n_cluster[j])] = loglik
 
         maxloglikDF = pd.concat([maxloglikDF, row])
