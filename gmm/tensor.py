@@ -173,7 +173,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
     func = value_and_grad(maxloglik_ptnnp)
 
     x0 = vector_guess(meanShape, rank)
-    opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options={"maxls": 200, "iprint": 50, "maxiter": 50})
+    opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options={"maxls": 200, "iprint": 50, "maxiter": 500})
 
     tl.set_backend("numpy")
 
