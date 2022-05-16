@@ -65,7 +65,7 @@ def cp_pt_to_vector(nk, facinfo: tl.cp_tensor.CPTensor, factors_pt, ptCore):
     return np.log(vec)
 
 
-def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
+def vector_to_cp_pt(vectorIn, rank: int, shape: tuple, enforceSPD=True):
     """Converts linear vector to factors"""
     vectorIn = jnp.exp(vectorIn)
     rebuildnk = vectorIn[0 : shape[0]]
@@ -79,9 +79,22 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     factors = [jnp.reshape(vectorIn[nN[ii] : nN[ii + 1]], (shape[ii], rank)) for ii in range(len(shape))]
     # Rebuidling factors and ranks
 
-    precFactor = vectorIn[nN[-2] : nN[-1]].reshape(shape[1], shape[1], rank)
+    precSym = vectorIn[nN[-2] : nN[-1]].reshape(shape[1], shape[1], rank)
 
-    factors_pt = [factors[0], precFactor, factors[2], factors[3], factors[4]]
+    if enforceSPD:
+        precSym = (precSym + jnp.swapaxes(precSym, 0, 1)) / 2.0  # Enforce symmetry
+
+        # Compute the symmetric polar factor of B. Call it H.
+        # Clearly H is itself SPD.
+        for ii in range(precSym.shape[2]):
+            _, S, V = jnp.linalg.svd(precSym[:, :, ii], full_matrices=False)
+            precSymH = V @ S @ V.T
+            # get Ahat in the above formula
+            precSym.at[:, :, ii].set((precSym[:, :, ii] + precSymH) / 2)
+
+        precSym = (precSym + jnp.swapaxes(precSym, 0, 1)) / 2.0  # Enforce symmetry
+
+    factors_pt = [factors[0], precSym, factors[2], factors[3], factors[4]]
     ptNewCore = vectorIn[nN[-1] : :].reshape(rank, rank, rank, rank, rank)
 
     return rebuildnk, tl.cp_tensor.CPTensor((None, factors)), factors_pt, ptNewCore
@@ -93,13 +106,14 @@ def vector_guess(shape: tuple, rank: int):
     return np.random.normal(loc=-1.0, size=factortotal)
 
 
-def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarray, nk: np.ndarray):
+def comparingGMM(zflowDF: xa.DataArray, meanFact, tPrecision: np.ndarray, nk: np.ndarray):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
     to determine the max log-likelihood"""
     assert nk.ndim == 1
     nk /= np.sum(nk)
     loglik = 0.0
 
+    tMeans = tl.cp_to_tensor(meanFact)
     X = zflowDF.to_numpy()
 
     it = np.nditer(tMeans[0, 0, :, :, :], flags=["multi_index", "refs_ok"])
@@ -119,22 +133,24 @@ def comparingGMM(zflowDF: xa.DataArray, tMeans: np.ndarray, tPrecision: np.ndarr
     return loglik
 
 
-def comparingGMMjax(X, tMeans, tPrecision, nk):
+def comparingGMMjax(X, nk, meanFact, ptFact, ptCore):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
     to determine the max log-likelihood"""
     assert nk.ndim == 1
     nkl = jnp.log(nk / jnp.sum(nk))
 
-    mp = jnp.einsum("ijklm,ijoklm->ioklm", tMeans, tPrecision)
-    Xp = jnp.einsum("jiklm,njoklm->inoklm", X, tPrecision)
+    mp = jnp.einsum("iz,jz,kz,lz,mz,ia,job,kc,ld,me,abcde->ioklm", *meanFact.factors, *ptFact, ptCore, optimize="greedy")
+    Xp = jnp.einsum("jiklm,na,job,kc,ld,me,abcde->inoklm", X, *ptFact, ptCore, optimize="greedy")
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :, :, :], axis=2))
     log_prob = -0.5 * (X.shape[0] * jnp.log(2 * jnp.pi) + log_prob)
 
     # The determinant of the precision matrix from the Cholesky decomposition
     # corresponds to the negative half of the determinant of the full precision matrix.
     # In short: det(precision_chol) = - det(precision) / 2
-    ppp = tPrecision.reshape(tMeans.shape[0], -1, tPrecision.shape[3], tPrecision.shape[4], tPrecision.shape[5])
-    log_det = jnp.sum(jnp.log(ppp[:, :: X.shape[0] + 1, :, :, :]), 1)
+    unrav = jnp.reshape(ptFact[1], (-1, ptFact[1].shape[2]))
+    unrav = unrav[:: X.shape[0] + 1, :]
+    ppp = jnp.einsum("ab,ce,fg,hi,jk,begik->acfhj", ptFact[0], unrav, ptFact[2], ptFact[3], ptFact[4], ptCore, optimize="greedy")
+    log_det = jnp.sum(jnp.log(ppp), 1)
 
     # Since we are using the precision of the Cholesky decomposition,
     # `- 0.5 * log_det_precision` becomes `+ log_det_precision_chol`
@@ -144,18 +160,13 @@ def comparingGMMjax(X, tMeans, tPrecision, nk):
 
 def maxloglik_ptnnp(facVector, shape: tuple, rank: int, zflowTensor: xa.DataArray):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
-    nk, meanFact, ptFact, ptCore = vector_to_cp_pt(facVector, rank, shape)
-    builtMeans = tl.cp_to_tensor(meanFact)
+    parts = vector_to_cp_pt(facVector, rank, shape)
 
-    ptCoreFull = jnp.einsum("ijk,lkmno->lijmno", ptFact[1], ptCore)
-
-    ptBuilt = multi_mode_dot(ptCoreFull, [ptFact[0], ptFact[2], ptFact[3], ptFact[4]], modes=[0, 3, 4, 5], transpose=False)
-    ptBuilt = (ptBuilt + np.swapaxes(ptBuilt, 1, 2)) / 2.0  # Enforce symmetry
     # Creating function that we want to minimize
-    return -comparingGMMjax(zflowTensor.to_numpy(), builtMeans, ptBuilt, nk)
+    return -comparingGMMjax(zflowTensor.to_numpy(), *parts)
 
 
-def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
+def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=2000):
     """Function used to minimize loglikelihood to obtain NK, factors and core of Cp and Pt"""
     times = zflowTensor.coords["Time"]
     doses = zflowTensor.coords["Dose"]
@@ -173,7 +184,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int):
     func = value_and_grad(maxloglik_ptnnp)
 
     x0 = vector_guess(meanShape, rank)
-    opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options={"maxls": 200, "iprint": 50, "maxiter": 500})
+    opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options={"maxls": 200, "iprint": 50, "maxiter": maxiter})
 
     tl.set_backend("numpy")
 
