@@ -8,7 +8,6 @@ from jax.config import config
 from .common import subplotLabel, getSetup
 from gmm.imports import smallDF
 from gmm.tensor import minimize_func
-from matplotlib.colors import LogNorm
 
 
 config.update("jax_enable_x64", True)
@@ -42,6 +41,6 @@ def makeFigure():
         maxloglikDF = pd.concat([maxloglikDF, row])
 
     maxloglikDF = maxloglikDF.set_index("Rank")
-    sns.heatmap(data=maxloglikDF, norm=LogNorm(), ax=ax[0])
+    sns.heatmap(data=maxloglikDF, ax=ax[0])
 
     return f
