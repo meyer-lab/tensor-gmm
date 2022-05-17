@@ -189,11 +189,11 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
 
     tl.set_backend("numpy")
 
-    optNK, optCP, _, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
+    optNK, optCP, optPTfactors, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
     optLL = -opt.fun
     optCP = cp_normalize((None, optCP))
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
     CPdf = [pd.DataFrame(optCP.factors[ii], columns=cmpCol, index=coords[key]) for ii, key in enumerate(coords)]
 
-    return optNK, CPdf, optPT, optLL
+    return optNK, CPdf, optPT, optLL, optPTfactors
