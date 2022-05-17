@@ -27,7 +27,7 @@ def makeFigure():
     zflowTensor, _ = smallDF(cellperexp)
     rank = 3
 
-    maximizedNK, maximizedFactors, _ , _, optPTfactors = minimize_func(zflowTensor, rank, n_cluster=6, maxiter=2)
+    maximizedNK, maximizedFactors, _ , _, optPTfactors = minimize_func(zflowTensor, rank, n_cluster=6, maxiter=2000)
     ptMarkerPatterns = optPTfactors[1]
 
     ptPatterns = [pd.DataFrame(np.reshape(ptMarkerPatterns[:,:,1],(5,-1)), columns=markerslist, index=markerslist) for i in range(rank)]
