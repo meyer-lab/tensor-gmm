@@ -27,13 +27,12 @@ def makeFigure():
     zflowTensor, _ = smallDF(cellperexp)
     rank = 3
 
-    maximizedNK, maximizedFactors, _ , _, optPTfactors = minimize_func(zflowTensor, rank, n_cluster=6, maxiter=2000)
+    maximizedNK, maximizedFactors, optPTfactors, _ = minimize_func(zflowTensor, rank, n_cluster=6, maxiter=200)
     ptMarkerPatterns = optPTfactors[1]
 
-    ptPatterns = [pd.DataFrame(np.reshape(ptMarkerPatterns[:,:,1],(5,-1)), columns=markerslist, index=markerslist) for i in range(rank)]
-
     for i in range(rank):
-        sns.heatmap(data=ptPatterns[i], ax=ax[i])
+        dff = pd.DataFrame(ptMarkerPatterns[:, :, i], columns=markerslist, index=markerslist)
+        sns.heatmap(data=dff, ax=ax[i])
 
     ax[3].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
     xlabel = "Cluster"
