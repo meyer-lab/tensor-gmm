@@ -11,6 +11,7 @@ from jax import value_and_grad, jit
 from scipy.optimize import minimize
 from tensorly.decomposition import non_negative_parafac
 from tensorly.cp_tensor import cp_normalize
+from gmm.imports import smallDF
 
 markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 config.update("jax_enable_x64", True)
@@ -160,7 +161,6 @@ def comparingGMMjax(X, nk, meanFact: list, ptFact):
 def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     parts = vector_to_cp_pt(facVector, rank, shape)
-
     # Creating function that we want to minimize
     return -comparingGMMjax(X, *parts)
 
@@ -186,12 +186,64 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options={"maxls": 200, "iprint": 90, "maxiter": maxiter})
 
     tl.set_backend("numpy")
-
+    
     optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
     optLL = -opt.fun
     optCP = cp_normalize((None, optCP))
+    optVec = opt.x
 
     cmpCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
     CPdf = [pd.DataFrame(optCP.factors[ii], columns=cmpCol, index=coords[key]) for ii, key in enumerate(coords)]
 
-    return optNK, CPdf, optPT, optLL
+    return optNK, CPdf, optPT, optLL, optVec
+
+
+def tensorGMM_CV(numCells, numFolds, numClusters, numRank):
+    """Runs Cross Validation for TensorGMM in order to determine best cluster"""
+    logLik = 0
+    cellTensor, _ = smallDF(numCells)
+    times = cellTensor.coords["Time"]
+    doses = cellTensor.coords["Dose"]
+    ligands = cellTensor.coords["Ligand"]
+    markers = cellTensor.coords["Marker"]
+
+    cellCoords = cellTensor.coords["Cell"].to_numpy() - 1
+    kFoldTens = np.full((cellTensor.Cell.size, cellTensor.Time.size, cellTensor.Dose.size, cellTensor.Ligand.size), 0)
+    foldSize = int(np.floor(cellTensor.Cell.size / numFolds))
+    meanShape = (numClusters, len(markers), len(times), len(doses), len(ligands))
+
+    # Generate unique shuffled data for every cell coordinate
+    for timeCoord in np.arange(0, cellTensor.Time.size):
+        for doseCoord in np.arange(0, cellTensor.Dose.size):
+            for ligandCoord in np.arange(0, cellTensor.Ligand.size):
+                np.random.shuffle(cellCoords)
+                kFoldTens[:, timeCoord, doseCoord, ligandCoord] = cellCoords
+
+    # Start generating splits and running model
+    for splitNum in np.arange(0, numFolds):
+        # Generate tensors to hold train and test data
+        trainData = np.full((cellTensor.Marker.size, foldSize * (numFolds - 1), cellTensor.Time.size, cellTensor.Dose.size, cellTensor.Ligand.size), 0.)
+        testData = np.full((cellTensor.Marker.size, foldSize, cellTensor.Time.size, cellTensor.Dose.size, cellTensor.Ligand.size), 0.)
+        for timeCoord in np.arange(0, cellTensor.Time.size):
+            for doseCoord in np.arange(0, cellTensor.Dose.size):
+                for ligandCoord in np.arange(0, cellTensor.Ligand.size):
+                    trainCoords1 = kFoldTens[0 : foldSize * splitNum, timeCoord, doseCoord, ligandCoord]
+                    trainCoords2 = kFoldTens[foldSize * (splitNum + 1):, timeCoord, doseCoord, ligandCoord]
+                    trainCoords = np.concatenate((trainCoords1, trainCoords2))
+                    testCoords = kFoldTens[foldSize * splitNum : foldSize * (splitNum + 1), timeCoord, doseCoord, ligandCoord]
+                    trainData[:, :, timeCoord, doseCoord, ligandCoord] = cellTensor.to_numpy()[:, trainCoords, np.repeat(timeCoord, trainCoords.size), np.repeat(doseCoord, trainCoords.size), np.repeat(ligandCoord, trainCoords.size)]                        
+                    testData[:, :, timeCoord, doseCoord, ligandCoord] = cellTensor.to_numpy()[:, testCoords, np.repeat(timeCoord, testCoords.size), np.repeat(doseCoord, testCoords.size), np.repeat(ligandCoord, testCoords.size)]
+
+        # Arrange into Xarrays
+        trainXArray = xa.DataArray(trainData, dims=("Marker", "Cell", "Time", "Dose", "Ligand"), 
+                                    coords={"Marker": markers, "Cell": np.arange(0, foldSize * (numFolds - 1)), 
+                                                    "Time": times, "Dose": doses, "Ligand": ligands})
+        testXArray = xa.DataArray(testData, dims=("Marker", "Cell", "Time", "Dose", "Ligand"), 
+                                    coords={"Marker": markers, "Cell": np.arange(0, foldSize), 
+                                    "Time": times, "Dose": doses, "Ligand": ligands})
+        # Train
+        _,  _, _, _, optVec = minimize_func(trainXArray, numRank, numClusters, maxiter=1000)
+        # Test
+        logLik -= maxloglik_ptnnp(optVec, meanShape, numRank, testXArray.to_numpy())
+
+    return float(logLik)
