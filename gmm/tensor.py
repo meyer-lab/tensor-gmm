@@ -231,8 +231,9 @@ def makeCVFolds(numCells, numFolds):
                                                     "Time": times, "Dose": doses, "Ligand": ligands})
     return cvXArray
 
+
 def tensorGMM_CV(cvXArray, numClusters, numRank):
-    """Runs Cross Validation for TensorGMM in order to determine best cluster"""
+    """Runs Cross Validation for TensorGMM in order to determine best cluster/rank combo."""
     logLik = 0
     times = cvXArray.coords["Time"]
     doses = cvXArray.coords["Dose"]
