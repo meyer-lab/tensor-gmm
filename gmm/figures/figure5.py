@@ -7,7 +7,7 @@ import seaborn as sns
 from jax.config import config
 from .common import subplotLabel, getSetup
 from gmm.imports import smallDF
-from gmm.tensor import minimize_func, tensorGMM_CV
+from gmm.tensor import minimize_func, tensorGMM_CV, makeCVFolds
 
 
 config.update("jax_enable_x64", True)
@@ -30,7 +30,6 @@ def makeFigure():
 
     # maxloglikDF = pd.DataFrame(columns=["Rank", "Cluster", "MaxLoglik"])
     maxloglikDF = pd.DataFrame()
-
     for i in range(len(ranknumb)):
         row = pd.DataFrame()
         row["Rank"] = ["Rank:" + str(ranknumb[i])]
@@ -43,17 +42,19 @@ def makeFigure():
     maxloglikDF = maxloglikDF.set_index("Rank")
     sns.heatmap(data=maxloglikDF, ax=ax[0])
 
+    cvXArray = makeCVFolds(numCells=cellperexp, numFolds=3)
+    maxloglikDFcv = pd.DataFrame()
     for i in range(len(ranknumb)):
         row = pd.DataFrame()
         row["Rank"] = ["Rank:" + str(ranknumb[i])]
         for j in range(len(n_cluster)):
-            loglik = tensorGMM_CV(numCells=200, numFolds=4, numClusters=n_cluster[j], numRank=ranknumb[i])
+            loglik = tensorGMM_CV(cvXArray, numClusters=n_cluster[j], numRank=ranknumb[i])
             row["Cluster:" + str(n_cluster[j])] = loglik
 
-        maxloglikDF = pd.concat([maxloglikDF, row])
+        maxloglikDFcv = pd.concat([maxloglikDF, row])
 
-    maxloglikDF = maxloglikDF.set_index("Rank")
-    sns.heatmap(data=maxloglikDF, ax=ax[1])
+    maxloglikDFcv = maxloglikDFcv.set_index("Rank")
+    sns.heatmap(data=maxloglikDFcv, ax=ax[1])
     ax[1].set(title="Cross Validation")
 
     return f

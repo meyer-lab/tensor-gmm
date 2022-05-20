@@ -198,9 +198,8 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     return optNK, CPdf, optPT, optLL, optVec
 
 
-def tensorGMM_CV(numCells, numFolds, numClusters, numRank):
-    """Runs Cross Validation for TensorGMM in order to determine best cluster"""
-    logLik = 0
+def makeCVFolds(numCells, numFolds):
+    """Shuffles a flow cytometry tensor and then divies it up into n folds. Returns tensor with dims (fold x marker x cell x time x dose x ligand)."""
     cellTensor, _ = smallDF(numCells)
     times = cellTensor.coords["Time"]
     doses = cellTensor.coords["Dose"]
@@ -210,7 +209,6 @@ def tensorGMM_CV(numCells, numFolds, numClusters, numRank):
     cellCoords = cellTensor.coords["Cell"].to_numpy() - 1
     kFoldTens = np.full((cellTensor.Cell.size, cellTensor.Time.size, cellTensor.Dose.size, cellTensor.Ligand.size), 0)
     foldSize = int(np.floor(cellTensor.Cell.size / numFolds))
-    meanShape = (numClusters, len(markers), len(times), len(doses), len(ligands))
 
     # Generate unique shuffled data for every cell coordinate
     for timeCoord in np.arange(0, cellTensor.Time.size):
@@ -219,27 +217,44 @@ def tensorGMM_CV(numCells, numFolds, numClusters, numRank):
                 np.random.shuffle(cellCoords)
                 kFoldTens[:, timeCoord, doseCoord, ligandCoord] = cellCoords
 
-    # Start generating splits and running model
+    # Start generating splits 
+    foldData = np.full((numFolds, cellTensor.Marker.size, foldSize, cellTensor.Time.size, cellTensor.Dose.size, cellTensor.Ligand.size), 0.)
     for splitNum in np.arange(0, numFolds):
-        # Generate tensors to hold train and test data
-        trainData = np.full((cellTensor.Marker.size, foldSize * (numFolds - 1), cellTensor.Time.size, cellTensor.Dose.size, cellTensor.Ligand.size), 0.)
-        testData = np.full((cellTensor.Marker.size, foldSize, cellTensor.Time.size, cellTensor.Dose.size, cellTensor.Ligand.size), 0.)
         for timeCoord in np.arange(0, cellTensor.Time.size):
             for doseCoord in np.arange(0, cellTensor.Dose.size):
                 for ligandCoord in np.arange(0, cellTensor.Ligand.size):
-                    trainCoords1 = kFoldTens[0 : foldSize * splitNum, timeCoord, doseCoord, ligandCoord]
-                    trainCoords2 = kFoldTens[foldSize * (splitNum + 1):, timeCoord, doseCoord, ligandCoord]
-                    trainCoords = np.concatenate((trainCoords1, trainCoords2))
-                    testCoords = kFoldTens[foldSize * splitNum : foldSize * (splitNum + 1), timeCoord, doseCoord, ligandCoord]
-                    trainData[:, :, timeCoord, doseCoord, ligandCoord] = cellTensor.to_numpy()[:, trainCoords, np.repeat(timeCoord, trainCoords.size), np.repeat(doseCoord, trainCoords.size), np.repeat(ligandCoord, trainCoords.size)]                        
-                    testData[:, :, timeCoord, doseCoord, ligandCoord] = cellTensor.to_numpy()[:, testCoords, np.repeat(timeCoord, testCoords.size), np.repeat(doseCoord, testCoords.size), np.repeat(ligandCoord, testCoords.size)]
+                    foldCoords = kFoldTens[foldSize * splitNum : foldSize * (splitNum + 1), timeCoord, doseCoord, ligandCoord]
+                    foldData[splitNum, :, :, timeCoord, doseCoord, ligandCoord] = cellTensor.to_numpy()[:, foldCoords, np.repeat(timeCoord, foldCoords.size), np.repeat(doseCoord, foldCoords.size), np.repeat(ligandCoord, foldCoords.size)]                        
+
+    cvXArray = xa.DataArray(foldData, dims=("Fold", "Marker", "Cell", "Time", "Dose", "Ligand"), 
+                                    coords={"Fold": np.arange(0, numFolds), "Marker": markers, "Cell": np.arange(0, foldSize), 
+                                                    "Time": times, "Dose": doses, "Ligand": ligands})
+    return cvXArray
+
+def tensorGMM_CV(cvXArray, numClusters, numRank):
+    """Runs Cross Validation for TensorGMM in order to determine best cluster"""
+    logLik = 0
+    times = cvXArray.coords["Time"]
+    doses = cvXArray.coords["Dose"]
+    ligands = cvXArray.coords["Ligand"]
+    markers = cvXArray.coords["Marker"]
+    meanShape = (numClusters, len(markers), len(times), len(doses), len(ligands))
+
+    # Start generating splits and running model
+    for splitNum in np.arange(0, cvXArray.Fold.size):
+        # Generate tensors to hold train and test data
+        trainData = np.full((cvXArray.Marker.size, cvXArray.Cell.size * (cvXArray.Fold.size - 1), cvXArray.Time.size, cvXArray.Dose.size, cvXArray.Ligand.size), 0.)
+        testData = np.full((cvXArray.Marker.size, cvXArray.Cell.size, cvXArray.Time.size, cvXArray.Dose.size, cvXArray.Ligand.size), 0.)
+        for i, trainInd in enumerate(np.delete(np.arange(0, cvXArray.Fold.size), splitNum)):
+            trainData[:, cvXArray.Cell.size * i : cvXArray.Cell.size * (i + 1), :, :, :] = cvXArray.to_numpy()[trainInd, :, :, :, :, :]
+        testData[:, :, :, :, :] = cvXArray.to_numpy()[splitNum, :, :, :, :, :]
 
         # Arrange into Xarrays
         trainXArray = xa.DataArray(trainData, dims=("Marker", "Cell", "Time", "Dose", "Ligand"), 
-                                    coords={"Marker": markers, "Cell": np.arange(0, foldSize * (numFolds - 1)), 
+                                    coords={"Marker": markers, "Cell": np.arange(0, trainData.shape[1]), 
                                                     "Time": times, "Dose": doses, "Ligand": ligands})
         testXArray = xa.DataArray(testData, dims=("Marker", "Cell", "Time", "Dose", "Ligand"), 
-                                    coords={"Marker": markers, "Cell": np.arange(0, foldSize), 
+                                    coords={"Marker": markers, "Cell": np.arange(0, testData.shape[1]), 
                                     "Time": times, "Dose": doses, "Ligand": ligands})
         # Train
         _,  _, _, _, optVec = minimize_func(trainXArray, numRank, numClusters, maxiter=1000)
