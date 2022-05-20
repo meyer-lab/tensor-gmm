@@ -50,4 +50,4 @@ def test_comparingGMM():
 
 def test_fit():
     """Test that fitting can run fine."""
-    nk, fac, ptfac, ll = minimize_func(data_import, 3, 10, maxiter=200)
+    nk, fac, ptfac, ll, _ = minimize_func(data_import, 3, 10, maxiter=200)
