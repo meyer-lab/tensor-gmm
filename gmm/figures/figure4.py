@@ -27,7 +27,7 @@ def makeFigure():
     zflowTensor, _ = smallDF(cellperexp)
     rank = 3
 
-    maximizedNK, maximizedFactors, optPTfactors, _ = minimize_func(zflowTensor, rank, n_cluster=6, maxiter=200)
+    maximizedNK, maximizedFactors, optPTfactors, _, _ = minimize_func(zflowTensor, rank=3, n_cluster=6)
     ptMarkerPatterns = optPTfactors[1]
 
     for i in range(rank):
