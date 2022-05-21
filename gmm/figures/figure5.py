@@ -24,7 +24,7 @@ def makeFigure():
     cellperexp = 200
     ranknumb = np.arange(1, 6)
     n_cluster = np.arange(2, 8)
-    
+
     zflowTensor, _ = smallDF(cellperexp)
     # maxloglikDF = pd.DataFrame(columns=["Rank", "Cluster", "MaxLoglik"])
     maxloglikDF = pd.DataFrame()

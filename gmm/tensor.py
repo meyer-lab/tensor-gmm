@@ -186,7 +186,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options={"maxls": 200, "iprint": 90, "maxiter": maxiter})
 
     tl.set_backend("numpy")
-    
+
     optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
     optLL = -opt.fun
     optCP = cp_normalize((None, optCP))
@@ -212,22 +212,26 @@ def tensorGMM_CV(dataXArray, numFolds, numClusters, numRank):
     # Start generating splits and running model
     for splitNum in np.arange(0, numFolds):
         # Generate Coordinates of test and training data
-        trainCoords = np.concatenate((np.arange(0, splitNum * foldSize), np.arange((splitNum + 1) * foldSize , foldSize * numFolds)))
+        trainCoords = np.concatenate((np.arange(0, splitNum * foldSize), np.arange((splitNum + 1) * foldSize, foldSize * numFolds)))
         testCoords = np.arange(splitNum * foldSize, (splitNum + 1) * foldSize)
-    
+
         # Generate tensors of test and training data
         trainData = dataXArray.to_numpy()[:, trainCoords, :, :, :]
         testData = dataXArray.to_numpy()[:, testCoords, :, :, :]
-    
+
         # Arrange into Xarrays
-        trainXArray = xa.DataArray(trainData, dims=("Marker", "Cell", "Time", "Dose", "Ligand"), 
-                                    coords={"Marker": markers, "Cell": np.arange(0, trainData.shape[1]), 
-                                                    "Time": times, "Dose": doses, "Ligand": ligands})
-        testXArray = xa.DataArray(testData, dims=("Marker", "Cell", "Time", "Dose", "Ligand"), 
-                                    coords={"Marker": markers, "Cell": np.arange(0, testData.shape[1]), 
-                                    "Time": times, "Dose": doses, "Ligand": ligands})
+        trainXArray = xa.DataArray(
+            trainData,
+            dims=("Marker", "Cell", "Time", "Dose", "Ligand"),
+            coords={"Marker": markers, "Cell": np.arange(0, trainData.shape[1]), "Time": times, "Dose": doses, "Ligand": ligands},
+        )
+        testXArray = xa.DataArray(
+            testData,
+            dims=("Marker", "Cell", "Time", "Dose", "Ligand"),
+            coords={"Marker": markers, "Cell": np.arange(0, testData.shape[1]), "Time": times, "Dose": doses, "Ligand": ligands},
+        )
         # Train
-        _,  _, _, _, optVec = minimize_func(trainXArray, numRank, numClusters, maxiter=1000)
+        _, _, _, _, optVec = minimize_func(trainXArray, numRank, numClusters, maxiter=1000)
         # Test
         logLik -= maxloglik_ptnnp(optVec, meanShape, numRank, testXArray.to_numpy())
 
