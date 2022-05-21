@@ -6,6 +6,7 @@ from jax.config import config
 import tensorly as tl
 import xarray as xa
 from sklearn.mixture import GaussianMixture
+from sklearn.model_selection import KFold
 from jax import value_and_grad, jit
 
 from scipy.optimize import minimize
@@ -198,41 +199,19 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     return optNK, CPdf, optPT, optLL, optVec
 
 
-def tensorGMM_CV(dataXArray, numFolds, numClusters, numRank):
+def tensorGMM_CV(X, numFolds, numClusters, numRank, maxiter=2000):
     """Runs Cross Validation for TensorGMM in order to determine best cluster/rank combo."""
-    logLik = 0
-    times = dataXArray.coords["Time"]
-    doses = dataXArray.coords["Dose"]
-    ligands = dataXArray.coords["Ligand"]
-    markers = dataXArray.coords["Marker"]
+    logLik = 0.0
+    meanShape = (numClusters, len(markerslist), X.shape[2], X.shape[3], X.shape[4])
 
-    foldSize = int(np.floor(dataXArray.Cell.size / numFolds))
-    meanShape = (numClusters, len(markers), len(times), len(doses), len(ligands))
+    kf = KFold(n_splits=numFolds)
 
     # Start generating splits and running model
-    for splitNum in np.arange(0, numFolds):
-        # Generate Coordinates of test and training data
-        trainCoords = np.concatenate((np.arange(0, splitNum * foldSize), np.arange((splitNum + 1) * foldSize, foldSize * numFolds)))
-        testCoords = np.arange(splitNum * foldSize, (splitNum + 1) * foldSize)
-
-        # Generate tensors of test and training data
-        trainData = dataXArray.to_numpy()[:, trainCoords, :, :, :]
-        testData = dataXArray.to_numpy()[:, testCoords, :, :, :]
-
-        # Arrange into Xarrays
-        trainXArray = xa.DataArray(
-            trainData,
-            dims=("Marker", "Cell", "Time", "Dose", "Ligand"),
-            coords={"Marker": markers, "Cell": np.arange(0, trainData.shape[1]), "Time": times, "Dose": doses, "Ligand": ligands},
-        )
-        testXArray = xa.DataArray(
-            testData,
-            dims=("Marker", "Cell", "Time", "Dose", "Ligand"),
-            coords={"Marker": markers, "Cell": np.arange(0, testData.shape[1]), "Time": times, "Dose": doses, "Ligand": ligands},
-        )
+    for train_index, test_index in kf.split(X[:, :, 0, 0, 0].T):
         # Train
-        _, _, _, _, optVec = minimize_func(trainXArray, numRank, numClusters, maxiter=1000)
+        _, _, _, _, optVec = minimize_func(X[:, train_index, :, :, :], numRank, numClusters, maxiter=maxiter)
         # Test
-        logLik -= maxloglik_ptnnp(optVec, meanShape, numRank, testXArray.to_numpy())
+        test_ll = -maxloglik_ptnnp(optVec, meanShape, numRank, X[:, test_index, :, :, :].to_numpy())
+        logLik += test_ll
 
-    return float(logLik)
+    return logLik
