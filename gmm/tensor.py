@@ -12,7 +12,6 @@ from jax import value_and_grad, jit
 from scipy.optimize import minimize
 from tensorly.decomposition import non_negative_parafac
 from tensorly.cp_tensor import cp_normalize
-from gmm.imports import smallDF
 
 markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 config.update("jax_enable_x64", True)
