@@ -37,6 +37,10 @@ def smallDF(numCells: int):
     flowDF["pSTAT5"] /= np.std(flowDF["pSTAT5"])  # For pSTAT5 only, dividing my std of all experiments
     flowDF.sort_values(by=["Time", "Dose", "Ligand"], inplace=True)
 
+    # Filter out problematic ligands
+    flowDF = flowDF.loc[flowDF["Ligand"] != "R38Q N-term-2"]
+    flowDF = flowDF.loc[flowDF["Ligand"] != "H16N N-term-2"]
+
     flowDF["Cell"] = np.tile(np.arange(1, numCells + 1), int(flowDF.shape[0] / numCells))
     flowDF = flowDF.set_index(["Cell", "Time", "Dose", "Ligand"]).to_xarray()
     cell_type = flowDF["Cell Type"]
@@ -44,6 +48,7 @@ def smallDF(numCells: int):
     flowDF = flowDF[transCols].to_array(dim="Marker")
     # Final Xarray has dimensions [Marker, Cell Number, Time, Dose, Ligand]
 
+    assert np.all(np.isfinite(flowDF.to_numpy()))
     return flowDF, (experimentcells, cell_type)
 
 
