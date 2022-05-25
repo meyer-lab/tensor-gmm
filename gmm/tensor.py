@@ -128,7 +128,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     if x0 is None:
         x0 = vector_guess(meanShape, rank)
 
-    opts = {"maxcor": 30, "iprint": iprint, "maxiter": maxiter, "maxfun": 1e6, "ftol": 1e-10}
+    opts = {"maxls": 200, "maxcor": 30, "iprint": iprint, "maxiter": maxiter, "maxfun": 1e6, "ftol": 1e-10}
     opt = minimize(func, x0, jac=True, method="L-BFGS-B", args=args, options=opts)
 
     optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)

@@ -10,7 +10,7 @@ def smallDF(numCells: int):
     Zscores all markers per experiment but pSTAT5 normalized over all experiments
     Outputs amount of experiments and cell types as an Xarray"""
     # numCells = Amount of cells per experiment
-    flowArrow = importflowDF()
+    flowArrow = pq.read_table("/opt/andrew/FlowDataGMM.pq")
     gVars = ["Time", "Dose", "Ligand", "Valency"]
     # Columns that should be trasformed
     tCols = ["Foxp3", "CD25", "CD45RA", "CD4"]
@@ -50,21 +50,3 @@ def smallDF(numCells: int):
 
     assert np.all(np.isfinite(flowDF.to_numpy()))
     return flowDF, (experimentcells, cell_type)
-
-
-def importflowDF():
-    """Downloads all conditions, surface markers and cell types.
-    Cells are labeled via Thelper, None, Treg, CD8 or NK"""
-    monomeric = pq.read_table("/opt/andrew/FlowDataGMM_Mon_NoSub.pq")
-    dimeric = pq.read_table("/opt/andrew/FlowDataGMM_DimWT_NoSub.pq")
-    schema = monomeric.schema
-    schema = schema.set(5, pa.field('Foxp3', pa.float64()))
-    schema = schema.set(6, pa.field('CD25', pa.float64()))
-    schema = schema.set(7, pa.field('CD4', pa.float64()))
-    schema = schema.set(8, pa.field('CD45RA', pa.float64()))
-    schema = schema.set(9, pa.field('pSTAT5', pa.float64()))
-    schema = schema.set(12, pa.field('CD56', pa.float64()))
-    schema = schema.set(13, pa.field('CD3', pa.float64()))
-    schema = schema.set(14, pa.field('CD8', pa.float64()))
-    monomeric = monomeric.cast(schema)
-    return pa.concat_tables([monomeric, dimeric], promote=True)
