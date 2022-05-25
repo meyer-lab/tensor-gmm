@@ -19,10 +19,10 @@ def makeFigure():
 
     # smallDF(Amount of cells per experiment): Xarray of each marker, cell and condition
     # Final Xarray has dimensions [Marker, Cell Number, Time, Dose, Ligand]
-    cellperexp = 200
+    cellperexp = 10
     zflowTensor, _ = smallDF(cellperexp)
-    rank = 7
-    n_cluster = 6
+    rank = 2
+    n_cluster = 2
 
     maximizedNK, optCP, optPTfactors, _, _ = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
     ptMarkerPatterns = optPTfactors[1]

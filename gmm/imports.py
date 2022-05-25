@@ -51,5 +51,15 @@ def importflowDF():
     """Downloads all conditions, surface markers and cell types.
     Cells are labeled via Thelper, None, Treg, CD8 or NK"""
     monomeric = pq.read_table("/opt/andrew/FlowDataGMM_Mon_NoSub.pq")
-    dimeric = pq.read_table("/opt/andrew/FlowDataGMM_Mon_NoSub.pq")
-    return pa.concat_tables([monomeric, dimeric])
+    dimeric = pq.read_table("/opt/andrew/FlowDataGMM_DimWT_NoSub.pq")
+    schema = monomeric.schema
+    schema = schema.set(5, pa.field('Foxp3', pa.float64()))
+    schema = schema.set(6, pa.field('CD25', pa.float64()))
+    schema = schema.set(7, pa.field('CD4', pa.float64()))
+    schema = schema.set(8, pa.field('CD45RA', pa.float64()))
+    schema = schema.set(9, pa.field('pSTAT5', pa.float64()))
+    schema = schema.set(12, pa.field('CD56', pa.float64()))
+    schema = schema.set(13, pa.field('CD3', pa.float64()))
+    schema = schema.set(14, pa.field('CD8', pa.float64()))
+    monomeric = monomeric.cast(schema)
+    return pa.concat_tables([monomeric, dimeric], promote=True)
