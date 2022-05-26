@@ -38,8 +38,7 @@ def smallDF(numCells: int):
     flowDF.sort_values(by=["Time", "Dose", "Ligand"], inplace=True)
 
     # Filter out problematic ligands
-    flowDF = flowDF.loc[flowDF["Ligand"] != "R38Q N-term-2"]
-    flowDF = flowDF.loc[flowDF["Ligand"] != "H16N N-term-2"]
+    flowDF = flowDF.loc[flowDF["Time"] != 0.5]
 
     flowDF["Cell"] = np.tile(np.arange(1, numCells + 1), int(flowDF.shape[0] / numCells))
     flowDF = flowDF.set_index(["Cell", "Time", "Dose", "Ligand"]).to_xarray()

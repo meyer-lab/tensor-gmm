@@ -38,8 +38,9 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple, enforceSPD=True):
         # Compute the symmetric polar factor of B. Call it H.
         # Clearly H is itself SPD.
         for ii in range(precSym.shape[2]):
-            _, S, V = jnp.linalg.svd(precSym[:, :, ii], full_matrices=False)
-            precSymH = V @ S @ V.T
+            temp = precSym[:, :, ii]
+            # _, S, V = jnp.linalg.svd(precSym[:, :, ii], full_matrices=False)
+            # precSymH = V @ S @ V.T
         #     # get Ahat in the above formula
         #     precSym = precSym.at[:, :, ii].set((precSym[:, :, ii] + precSymH) / 2)
 
