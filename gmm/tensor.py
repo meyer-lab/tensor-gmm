@@ -117,7 +117,7 @@ def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     parts = vector_to_cp_pt(facVector, rank, shape)
     # Creating function that we want to minimize
     # Regularize so that we don't get enormous values
-    return -comparingGMMjax(X, *parts) + jnp.linalg.norm(jnp.exp(facVector)) / 1000.0
+    return -comparingGMMjax(X, *parts)
 
 
 def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=400, x0=None):
@@ -157,7 +157,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     return optNK, optCP, optPT, optLL, optVec
 
 
-def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=200):
+def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=100):
     """Runs Cross Validation for TensorGMM in order to determine best cluster/rank combo."""
     logLik = 0.0
     meanShape = (numClusters, len(markerslist), X.shape[2], X.shape[3], X.shape[4])
