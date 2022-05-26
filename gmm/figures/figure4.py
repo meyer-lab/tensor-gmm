@@ -21,7 +21,7 @@ def makeFigure():
     # Final Xarray has dimensions [Marker, Cell Number, Time, Dose, Ligand]
     cellperexp = 200
     zflowTensor, _ = smallDF(cellperexp)
-    rank = 5
+    rank = 7
     n_cluster = 8
 
     maximizedNK, optCP, optPTfactors, _, _ = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
