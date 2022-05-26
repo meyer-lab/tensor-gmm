@@ -22,7 +22,7 @@ def makeFigure():
     cellperexp = 200
     zflowTensor, _ = smallDF(cellperexp)
     rank = 7
-    n_cluster = 8
+    n_cluster = 6
 
     maximizedNK, optCP, optPTfactors, _, _ = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
     ptMarkerPatterns = optPTfactors[1]
