@@ -24,9 +24,9 @@ def smallDF(numCells: int):
 
     # Group and subset
     experimentcells = flowDF.groupby(by=gVars).size()
-    flowDF[tCols] = flowDF.groupby(by=gVars)[tCols].transform(lambda x: x / np.std(x))  # Dividing by std per experiement
     for mark in transCols:
-        flowDF = flowDF[flowDF[mark] < flowDF[mark].quantile(0.995)]  # Getting rid of outlier values
+        flowDF = flowDF[flowDF[mark] < flowDF[mark].quantile(0.99)]  # Getting rid of outlier values
+    flowDF[tCols] = flowDF.groupby(by=gVars)[tCols].transform(lambda x: x / np.std(x))  # Dividing by std per experiement
     flowDF = flowDF.groupby(by=gVars).sample(n=numCells).reset_index(drop=True)
 
     # Add valency to the name
@@ -41,6 +41,7 @@ def smallDF(numCells: int):
     flowDF = flowDF.loc[flowDF["Time"] != 0.5]
 
     flowDF["Cell"] = np.tile(np.arange(1, numCells + 1), int(flowDF.shape[0] / numCells))
+    flowDF[transCols] = flowDF[transCols].clip(lower=0)
     flowDF = flowDF.set_index(["Cell", "Time", "Dose", "Ligand"]).to_xarray()
     cell_type = flowDF["Cell Type"]
     flowDF = flowDF.drop_vars(["Cell Type"])

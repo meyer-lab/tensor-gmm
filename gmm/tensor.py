@@ -55,7 +55,9 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple, enforceSPD=True):
 def vector_guess(shape: tuple, rank: int):
     """Predetermines total vector that will be maximized for NK, factors and core"""
     factortotal = np.sum(shape) * rank + int(shape[1] * (shape[1] - 1) / 2 + shape[1]) * rank + shape[0]
-    return np.random.normal(loc=-1.0, size=factortotal)
+    vector = np.random.normal(loc=-1.0, size=factortotal)
+    vector[0: shape[0]] = 1
+    return vector
 
 
 def comparingGMM(zflowDF: xa.DataArray, meanFact, tPrecision: np.ndarray, nk: np.ndarray):
@@ -138,15 +140,15 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
 
     tq = tqdm(total=maxiter, delay=0.1)
 
-    def callback(xk):
+    def callback(xk, bounds):
         val, grad = func(xk, *args)
         gNorm = np.linalg.norm(grad)
         tq.set_postfix(val='{:.2e}'.format(val), g='{:.2e}'.format(gNorm), refresh=False)
         tq.update(1)
 
     opts = {"maxiter": maxiter, "disp": False}
-    opt = minimize(func, x0, jac=True, hessp=hvpj, callback=callback, method="trust-krylov", args=args, options=opts)
-
+    bounds = ((np.log(1e-1), np.log(10)), ) * len(x0)
+    opt = minimize(func, x0, jac=True, hessp=hvpj, callback=callback, method="trust-constr", bounds=bounds, args=args, options=opts)
     tq.close()
 
     optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
