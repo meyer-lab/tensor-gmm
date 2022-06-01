@@ -25,7 +25,7 @@ def smallDF(numCells: int):
     # Group and subset
     experimentcells = flowDF.groupby(by=gVars).size()
     for mark in transCols:
-        flowDF = flowDF[flowDF[mark] < flowDF[mark].quantile(0.99)]  # Getting rid of outlier values
+        flowDF = flowDF[flowDF[mark] < flowDF[mark].quantile(0.995)]  # Getting rid of outlier values
     flowDF[tCols] = flowDF.groupby(by=gVars)[tCols].transform(lambda x: x / np.std(x))  # Dividing by std per experiement
     flowDF = flowDF.groupby(by=gVars).sample(n=numCells).reset_index(drop=True)
 
