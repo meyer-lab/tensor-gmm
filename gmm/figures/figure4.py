@@ -26,10 +26,9 @@ def makeFigure():
 
     maximizedNK, optCP, optPTfactors, _, _ = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
     ptMarkerPatterns = optPTfactors[1]
-    ptMarkerPatterns += np.swapaxes(ptMarkerPatterns, 0, 1)
 
     for i in range(3):
-        dff = pd.DataFrame(ptMarkerPatterns[:, :, i], columns=markerslist, index=markerslist)
+        dff = pd.DataFrame(ptMarkerPatterns[:, :, i] @ ptMarkerPatterns[:, :, i].T, columns=markerslist, index=markerslist)
         sns.heatmap(data=dff, ax=ax[i])
 
     ax[3].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
