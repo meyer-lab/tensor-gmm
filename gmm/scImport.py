@@ -17,7 +17,8 @@ def import_thompson_drug(numCells):
     drugScreen = drugScreen.astype(np.int16)
     barcodes = np.array([row[0] for row in csv.reader(open('gmm/data/barcodes.tsv'), delimiter="\t")]) # barcdoes of cells (33482)
     genes = np.array([row[1].upper() for row in csv.reader(open('gmm/data/features.tsv'), delimiter="\t")]) # Gene names (32738)
-
+    
+    # print(genes)
     bc_idx = {}
     for i, bc in enumerate(barcodes):
         bc_idx[bc] = i
@@ -35,12 +36,28 @@ def import_thompson_drug(numCells):
         if cellID == "Etodolac":
             break
 
-    totalcells = np.arange(1, numCells + 1)
-    totalGenes.columns = namingList
-    totalGenes = totalGenes.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
-    totalGenes["Cell"] = np.tile(np.arange(1, numCells + 1), int(totalGenes.shape[0]/numCells))
 
-    return totalGenes
+    # Might take out depending if want to use all cells that are in each experiment
+    # totalcells = np.arange(1, numCells + 1)
+    totalGenes.columns = namingList
+    # totalGenes = totalGenes.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
+    # totalGenes["Cell"] = np.tile(np.arange(1, numCells + 1), int(totalGenes.shape[0]/numCells))
+
+    return totalGenes, genes
+
+def normalizeGenes(totalGenes, geneNames):
+    # totalGenes[] = totalGenes.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
+    totalGenes[geneNames] = totalGenes.groupby(by="Drug")[geneNames].transform(lambda x: x / np.sum(x))
+    return  totalGenes
+    # flowDF[tCols] = flowDF.groupby(by=gVars)[tCols].transform(lambda x: x / np.std(x)) 
+
+    # sums = np.array(M.sum(axis=0)).flatten() # compute sums of all columns (cells)
+	# # M.data = M.data.astype(float) # convert type from int to float prior to division
+	
+	# for i in range(len(M.indptr)-1): # for each column i
+	# 	rr = range(M.indptr[i], M.indptr[i+1]) # get range rr
+	# 	M.data[rr] = M.data[rr]/sums[i] # divide data values by matching column sum
+
 
 
 def geneNNMF(X, k=14, verbose=0):
