@@ -7,6 +7,7 @@ import xarray as xa
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import KFold
 from jax import value_and_grad, jit, grad
+from jax.experimental.host_callback import id_print
 
 from scipy.optimize import minimize
 from tensorly.cp_tensor import cp_normalize
@@ -28,10 +29,9 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     # Rebuidling factors and ranks
 
     precSym = jnp.zeros((shape[1], shape[1], rank))
-    ai, bi = jnp.tril_indices(5)
+    ai, bi = jnp.tril_indices(shape[1])
     pVec = vectorIn[nN[-1] : :].reshape(-1, rank)
     precSym = precSym.at[ai, bi, :].set(pVec)
-
     factors_pt = [factors[0], precSym, factors[2], factors[3], factors[4]]
     return rebuildnk, factors, factors_pt
 
@@ -119,7 +119,6 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     meanShape = (n_cluster, zflowTensor.shape[0], zflowTensor.shape[2], zflowTensor.shape[3], zflowTensor.shape[4])
 
     args = (meanShape, rank, zflowTensor.to_numpy())
-
     func = jit(value_and_grad(maxloglik_ptnnp), static_argnums=(1, 2))
 
     if x0 is None:
@@ -153,7 +152,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
 def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=100):
     """Runs Cross Validation for TensorGMM in order to determine best cluster/rank combo."""
     logLik = 0.0
-    meanShape = (numClusters, len(markerslist), X.shape[2], X.shape[3], X.shape[4])
+    meanShape = (numClusters, X.shape[1], X.shape[2], X.shape[3], X.shape[4])
 
     kf = KFold(n_splits=numFolds)
     x0 = None
