@@ -47,16 +47,17 @@ def import_thompson_drug(numCells):
 
 def normalizeGenes(totalGenes, geneNames):
     # totalGenes[] = totalGenes.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
-    totalGenes[geneNames] = totalGenes.groupby(by="Drug")[geneNames].transform(lambda x: x / np.sum(x))
-    return  totalGenes
-    # flowDF[tCols] = flowDF.groupby(by=gVars)[tCols].transform(lambda x: x / np.std(x)) 
+    sumGenes = totalGenes[geneNames].sum(axis=0).tolist()
+    newGene = pd.DataFrame(data=np.reshape(sumGenes,(1,-1)),columns=geneNames)
 
-    # sums = np.array(M.sum(axis=0)).flatten() # compute sums of all columns (cells)
-	# # M.data = M.data.astype(float) # convert type from int to float prior to division
-	
-	# for i in range(len(M.indptr)-1): # for each column i
-	# 	rr = range(M.indptr[i], M.indptr[i+1]) # get range rr
-	# 	M.data[rr] = M.data[rr]/sums[i] # divide data values by matching column sum
+    normG = totalGenes[geneNames].div(newGene,axis=1)
+    normG = normG[geneNames].replace(np.nan,0)
+
+    drugs = totalGenes.iloc[:,-1].tolist()
+    drugs = np.reshape(drugs,(-1,1))
+    normalizeGenesDF = pd.concat([normG, pd.DataFrame(data = drugs,columns = ["Drug"])],axis=1)
+        
+    return  normalizeGenesDF
 
 
 
