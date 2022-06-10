@@ -67,11 +67,9 @@ def mu_sigma(geneDF):
     filtDF = noDrugDF.where(noDrugDF >= 0, 1, inplace=False)
     drugCol = geneDF
     noDrugDF = noDrugDF[noDrugDF.columns[filtDF.mean(axis=0) > 0.01]]
-    print(noDrugDF)
     geneDF = pd.concat([noDrugDF, drugCol], axis=1)
     means = noDrugDF.mean(axis=0).to_numpy()
     std = np.sqrt(noDrugDF.mean(axis=0).to_numpy())
-    print(geneDF.shape)
     return geneDF, means, std
 
 
