@@ -45,6 +45,7 @@ def import_thompson_drug(numCells):
 
     return totalGenes, genes
 
+
 def normalizeGenes(totalGenes, geneNames):
     # totalGenes[] = totalGenes.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
     sumGenes = totalGenes[geneNames].sum(axis=0).tolist()
@@ -56,9 +57,22 @@ def normalizeGenes(totalGenes, geneNames):
     drugs = totalGenes.iloc[:,-1].tolist()
     drugs = np.reshape(drugs,(-1,1))
     normalizeGenesDF = pd.concat([normG, pd.DataFrame(data = drugs,columns = ["Drug"])],axis=1)
-        
+
     return  normalizeGenesDF
 
+
+def mu_sigma(geneDF):
+    """Calculates the mu and sigma for every gene and returns means, sigmas, and dataframe filtered for genes expressed in > 0.1% of cells"""
+    noDrugDF = geneDF.drop("Drug", axis=1).astype("float64")
+    filtDF = noDrugDF.where(noDrugDF >= 0, 1, inplace=False)
+    drugCol = geneDF
+    noDrugDF = noDrugDF[noDrugDF.columns[filtDF.mean(axis=0) > 0.01]]
+    print(noDrugDF)
+    geneDF = pd.concat([noDrugDF, drugCol], axis=1)
+    means = noDrugDF.mean(axis=0).to_numpy()
+    std = np.sqrt(noDrugDF.mean(axis=0).to_numpy())
+    print(geneDF.shape)
+    return geneDF, means, std
 
 
 def geneNNMF(X, k=14, verbose=0):
