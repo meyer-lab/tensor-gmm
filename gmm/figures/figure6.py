@@ -3,28 +3,36 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import xarray as xa
+from sklearn.mixture import GaussianMixture
 from .common import subplotLabel, getSetup
-from gmm.tensor import minimize_func
+from gmm.tensor import minimize_func, gen_points_GMM
+
 
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
-    ax, f = getSetup((12, 6), (2, 4))
+    ax, f = getSetup((12, 6), (3, 4))
 
     # Add subplot labels
     subplotLabel(ax)
-    blob_DF = make_synth_pic(magnitude=300)
+    blob_DF = make_synth_pic(magnitude=1000)
     plot_synth_pic(blob_DF, t=0, ax=ax[0])
     plot_synth_pic(blob_DF, t=6, ax=ax[1])
     plot_synth_pic(blob_DF, t=12, ax=ax[2])
     plot_synth_pic(blob_DF, t=19, ax=ax[3])
 
 
-    rank = 5
+    rank = 4
     n_cluster = 6
     blob_xarray = make_blob_tensor(blob_DF)
 
-    maximizedNK, optCP, optPTfactors, _, _ = minimize_func(blob_xarray, rank=rank, n_cluster=n_cluster)
+    maximizedNK, optCP, optPTfactors, _, _, preNormOptCP = minimize_func(blob_xarray, rank=rank, n_cluster=n_cluster)
+    for i in np.arange(0, 4):
+        points = gen_points_GMM(maximizedNK, preNormOptCP, optPTfactors, i * 6)
+        points_DF = pd.DataFrame({"X": points[:, 0], "Y": points[:, 1]})
+        sns.scatterplot(data=points_DF, x="X", y="Y", ax=ax[i + 8])
+        ax[i+8].set(xlim=(0, 25), ylim=(0, 30))
+
 
     ax[4].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
     xlabel = "Cluster"

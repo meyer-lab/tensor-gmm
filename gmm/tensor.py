@@ -1,9 +1,12 @@
+from time import time_ns
 import numpy as np
+from sklearn.cluster import MeanShift
 import jax.numpy as jnp
 import jax.scipy.special as jsp
 import tensorly as tl
 from tqdm import tqdm
 import xarray as xa
+from copy import copy
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import KFold
 from jax import value_and_grad, jit, grad
@@ -77,7 +80,6 @@ def comparingGMMjax(X, nk, meanFact: list, tPrecision):
     assert nk.ndim == 1
     n_markers = tPrecision.shape[1]
     nkl = jnp.log(nk / jnp.sum(nk))
-
     mp = jnp.einsum("iz,jz,kz,lz,mz,ijoklm->ioklm", *meanFact, tPrecision)
     Xp = jnp.einsum("jiklm,njoklm->inoklm", X, tPrecision)
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :, :, :], axis=2))
@@ -143,13 +145,14 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
 
     optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
     optLL = -opt.fun
+    preNormCP = copy(optCP)
     optCP = cp_normalize((None, optCP))
     optVec = opt.x
 
-    return optNK, optCP, optPT, optLL, optVec
+    return optNK, optCP, optPT, optLL, optVec, preNormCP
 
 
-def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=100):
+def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=300):
     """Runs Cross Validation for TensorGMM in order to determine best cluster/rank combo."""
     logLik = 0.0
     meanShape = (numClusters, X.shape[1], X.shape[2], X.shape[3], X.shape[4])
@@ -166,3 +169,26 @@ def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=100):
         logLik += test_ll
 
     return float(logLik)
+
+
+def gen_points_GMM(optNK, optCP, optPT, time):
+    """Generates points from a scikit-learn GMM object for a fit NK, CP and PT"""
+    GMM = GaussianMixture(n_components=optNK.size, covariance_type="full").fit([[120, 0], [2, 1], [4, 2], [6, 3], [0, 4], [0, 5], [0, 5], [24, 5], [81, 1], [98, 3], [12, 8], [87, 5], [3, 5]])
+    precisions = covFactor_to_precisions(optPT)
+    means = jnp.einsum("iz,jz,kz,lz,mz,ijoklm->ioklm", *optCP, precisions)
+    precisions = precisions[:, :, :, time, 0, 0].reshape([6, 2, 2])
+    covariances = jnp.linalg.inv(precisions)
+
+    for i in range(0, covariances.shape[0]):
+        covariances = covariances.at[i, 1, 0].set(covariances[i, 0, 1])
+        precisions = precisions.at[i, 1, 0].set(precisions[i, 0, 1])
+    GMM.precisions_ = np.array(precisions)
+    GMM.precisions_cholesky_ = np.array(np.linalg.cholesky(precisions))
+    
+    
+    GMM.weights_ = np.array(optNK / np.sum(optNK))
+    GMM.means_ = np.array(means[:, :, time, 0, 0].reshape([6, 2]))
+    GMM.covariances_ = np.array(covariances)
+    GMM.converged_ = True
+    points = GMM.sample(500)
+    return points[0]
