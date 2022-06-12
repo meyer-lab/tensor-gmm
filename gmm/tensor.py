@@ -163,7 +163,7 @@ def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=300):
     # Start generating splits and running model
     for train_index, test_index in kf.split(X[:, :, 0, 0, 0].T):
         # Train
-        _, _, _, _, x0 = minimize_func(X[:, train_index, :, :, :], numRank, numClusters, maxiter=maxiter, x0=x0)
+        _, _, _, _, x0, _ = minimize_func(X[:, train_index, :, :, :], numRank, numClusters, maxiter=maxiter, x0=x0)
         # Test
         test_ll = -maxloglik_ptnnp(x0, meanShape, numRank, X[:, test_index, :, :, :].to_numpy())
         logLik += test_ll
