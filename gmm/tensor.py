@@ -32,7 +32,7 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     # Rebuidling factors and ranks
 
     precSym = jnp.zeros((shape[1], shape[1], rank))
-    ai, bi = jnp.tril_indices(shape[1])
+    ai, bi = jnp.tril_indices(5)
     pVec = vectorIn[nN[-1] : :].reshape(-1, rank)
     precSym = precSym.at[ai, bi, :].set(pVec)
     factors_pt = [factors[0], precSym, factors[2], factors[3], factors[4]]
@@ -155,7 +155,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
 def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=300):
     """Runs Cross Validation for TensorGMM in order to determine best cluster/rank combo."""
     logLik = 0.0
-    meanShape = (numClusters, X.shape[1], X.shape[2], X.shape[3], X.shape[4])
+    meanShape = (numClusters, X.shape[0], X.shape[2], X.shape[3], X.shape[4])
 
     kf = KFold(n_splits=numFolds)
     x0 = None
