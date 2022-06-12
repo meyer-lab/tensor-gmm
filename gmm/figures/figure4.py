@@ -24,7 +24,7 @@ def makeFigure():
     rank = 4
     n_cluster = 6
 
-    maximizedNK, optCP, optPTfactors, _, _ = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
+    maximizedNK, optCP, optPTfactors, _, _, _ = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
     ptMarkerPatterns = optPTfactors[1]
 
     for i in range(3):
