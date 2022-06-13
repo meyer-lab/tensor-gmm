@@ -32,7 +32,7 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     # Rebuidling factors and ranks
 
     precSym = jnp.zeros((shape[1], shape[1], rank))
-    ai, bi = jnp.tril_indices(5)
+    ai, bi = jnp.tril_indices(shape[1])
     pVec = vectorIn[nN[-1] : :].reshape(-1, rank)
     precSym = precSym.at[ai, bi, :].set(pVec)
     factors_pt = [factors[0], precSym, factors[2], factors[3], factors[4]]
