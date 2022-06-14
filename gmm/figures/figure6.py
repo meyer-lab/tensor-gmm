@@ -5,39 +5,31 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from .common import subplotLabel, getSetup
-from gmm.scImport import import_thompson_drug, geneNNMF, normalizeGenes, mu_sigma
-from sklearn.utils.sparsefuncs import mean_variance_axis
-from scipy.sparse import csr_matrix
+from gmm.scImport import import_thompson_drug, geneNNMF, normalizeGenes, mu_sigma, gene_filter
 import matplotlib.pyplot as plt
 
-# from gmm import barcodes,features, meta
 
 
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
     ax, f = getSetup((10, 8), (2, 3))
-
-    cellperexp = 200
     
-    genesDF, geneNames = import_thompson_drug(cellperexp)
-    print(genesDF)
-    # genesDF.to_csv('output.csv')
-    # genesDF = pd.read_csv('output.csv')
+    genesDF, geneNames = import_thompson_drug()
+    # genesDF.to_csv('output_final.csv')
+    # genesDF = pd.read_csv('output_total.csv')
     # genesDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     # geneNames = genesDF.columns[0:-2].tolist()
-    # geneDrugNames = genesDF.columns.tolist()
-    mu_sigma(genesDF)[0]
 
     genesN = normalizeGenes(genesDF, geneNames)
 
-    std = fg[geneNames].std(axis=0)
-    mean = fg[geneNames].mean(axis=0)
-    cv = np.divide(std, mean, out=np.zeros_like(std),where=mean!=0)
+    filteredGeneDF, logmean, logstd = mu_sigma(genesDF, geneNames)
+    finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value = 1.3)
 
-    nonzero = fg[geneNames][fg[geneNames] == 0].count()
+    ax[0].scatter(logmean,logstd)
+    ax[1].scatter(logmean[filtered_index],logstd[filtered_index])
 
-    # geneComponent, geneFactors = geneNNMF(genesDF, k = 20, verbose=0)
+    geneComponent, geneFactors = geneNNMF(finalDF, k = 20, verbose=0, maxiteration = 2000)
 
     return f
 
