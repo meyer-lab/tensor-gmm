@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 from .common import subplotLabel, getSetup
 from gmm.imports import smallDF
-from gmm.tensor import minimize_func, markerslist, gen_points_GMM_Flow
+from gmm.tensor import minimize_func, markerslist
 
 
 def makeFigure():
@@ -25,7 +25,7 @@ def makeFigure():
     n_cluster = 6
     print(zflowTensor)
 
-    maximizedNK, optCP, optPTfactors, _, _, preNormOptCP = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
+    maximizedNK, optCP, optPTfactors, _, _, _ = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
     ptMarkerPatterns = optPTfactors[1]
 
     
