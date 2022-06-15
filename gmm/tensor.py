@@ -117,7 +117,7 @@ def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     return -comparingGMMjax(X, nk, meanFact, precBuild)
 
 
-def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=100, x0=None):
+def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=200, x0=None):
     """Function used to minimize loglikelihood to obtain NK, factors and core of Cp and Pt"""
     meanShape = (n_cluster, zflowTensor.shape[0], zflowTensor.shape[2], zflowTensor.shape[3], zflowTensor.shape[4])
 
@@ -191,7 +191,7 @@ def gen_points_GMM(optNK, optCP, optPT, time, numClusters):
     GMM.means_ = np.array(means[:, :, time, 0, 0].reshape([numClusters, 2]))
     GMM.covariances_ = np.array(covariances)
     GMM.converged_ = True
-    points = GMM.sample(500)
+    points = GMM.sample(1000)
     return points[0]
 
 
