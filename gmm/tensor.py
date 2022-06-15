@@ -6,6 +6,7 @@ import jax.scipy.special as jsp
 import tensorly as tl
 from tqdm import tqdm
 import xarray as xa
+import pandas as pd
 from copy import copy
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import KFold
@@ -116,7 +117,7 @@ def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     return -comparingGMMjax(X, nk, meanFact, precBuild)
 
 
-def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=200, x0=None):
+def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=100, x0=None):
     """Function used to minimize loglikelihood to obtain NK, factors and core of Cp and Pt"""
     meanShape = (n_cluster, zflowTensor.shape[0], zflowTensor.shape[2], zflowTensor.shape[3], zflowTensor.shape[4])
 
@@ -190,5 +191,31 @@ def gen_points_GMM(optNK, optCP, optPT, time, numClusters):
     GMM.means_ = np.array(means[:, :, time, 0, 0].reshape([numClusters, 2]))
     GMM.covariances_ = np.array(covariances)
     GMM.converged_ = True
-    points = GMM.sample(1000)
+    points = GMM.sample(500)
     return points[0]
+
+
+def gen_points_GMM_Flow(optNK, optCP, optPT, time, dose, ligand, numClusters):
+    """Generates points from a scikit-learn GMM object for a fit NK, CP and PT"""
+    GMM = GaussianMixture(n_components=optNK.size, covariance_type="full")
+    precisions = covFactor_to_precisions(optPT)
+    means = jnp.einsum("iz,jz,kz,lz,mz,ijoklm->ioklm", *optCP, precisions)
+    precisions = precisions[:, :, :, time, dose, ligand].reshape([numClusters, 5, 5])
+
+    for i in range(0, precisions.shape[0]):
+        for j in range(1, precisions.shape[0]):
+            for k in range(0, j):
+                precisions = precisions.at[i, j, k].set(precisions[i, k, j])
+
+    covariances = jnp.linalg.inv(precisions)
+        
+    GMM.precisions_ = np.array(precisions)
+    GMM.precisions_cholesky_ = np.array(np.linalg.cholesky(precisions))
+
+    GMM.weights_ = np.array(optNK / np.sum(optNK))
+    GMM.means_ = np.array(means[:, :, time, dose, ligand].reshape([numClusters, 5]))
+    GMM.covariances_ = np.array(covariances)
+    GMM.converged_ = True
+    points = GMM.sample(1000)
+    pointsDF = pd.DataFrame({"Cluster": points[1],'Foxp3': points[0][:, 0], 'CD25': points[0][:, 1], 'CD45RA': points[0][:, 2], 'CD4': points[0][:, 3], 'pSTAT5': points[0][:, 4]})
+    return pointsDF
