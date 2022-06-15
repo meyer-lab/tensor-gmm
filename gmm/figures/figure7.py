@@ -15,10 +15,12 @@ def makeFigure():
     ax, f = getSetup((10, 8), (2, 3))
     
     genesDF, geneNames = import_thompson_drug()
-    # genesDF.to_csv('output_final.csv')
-    # genesDF = pd.read_csv('output_total.csv')
+    # genesDF.to_csv('output_final_total.csv')
+    # genesDF = pd.read_csv('output_final_total.csv')
     # genesDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     # geneNames = genesDF.columns[0:-2].tolist()
+
+    # print(genesDF)
 
     genesN = normalizeGenes(genesDF, geneNames)
 
