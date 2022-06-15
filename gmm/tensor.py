@@ -177,8 +177,6 @@ def gen_points_GMM(optNK, optCP, optPT, time, numClusters):
     precisions = covFactor_to_precisions(optPT)
     means = jnp.einsum("iz,jz,kz,lz,mz,ijoklm->ioklm", *optCP, precisions)
     precisions = precisions[:, :, :, time, 0, 0].reshape([numClusters, 2, 2])
-    #covariances = jnp.linalg.inv(precisions)
-    print(id_print(precisions))
 
     for i in range(0, precisions.shape[0]):
         precisions = precisions.at[i, 1, 0].set(precisions[i, 0, 1])
