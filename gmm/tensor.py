@@ -141,7 +141,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     def callback(xk):
         val, grad = func(xk, *args)
         gNorm = np.linalg.norm(grad)
-        tq.set_postfix(val='{:.2e}'.format(val), g='{:.2e}'.format(gNorm), refresh=False)
+        tq.set_postfix(val="{:.2e}".format(val), g="{:.2e}".format(gNorm), refresh=False)
         tq.update(1)
 
     opts = {"maxiter": maxiter, "disp": False}

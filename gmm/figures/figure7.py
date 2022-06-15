@@ -1,5 +1,5 @@
 """
-This creates Figure 6.
+This creates Figure 7.
 """
 import numpy as np
 import pandas as pd
@@ -7,7 +7,6 @@ import seaborn as sns
 from .common import subplotLabel, getSetup
 from gmm.scImport import import_thompson_drug, geneNNMF, normalizeGenes, mu_sigma, gene_filter
 import matplotlib.pyplot as plt
-
 
 
 def makeFigure():
@@ -29,7 +28,8 @@ def makeFigure():
     ax[0].scatter(logmean,logstd)
     ax[1].scatter(logmean[filtered_index],logstd[filtered_index])
 
-    geneComponent, geneFactors = geneNNMF(finalDF, k = 20, verbose=0, maxiteration = 2000)
+    geneComponent, geneFactors = geneNNMF(finalDF, k=20, verbose=0, maxiteration=2000)
+
 
     return f
 
