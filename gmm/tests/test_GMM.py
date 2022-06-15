@@ -32,6 +32,7 @@ def test_import():
 def test_sc():
     x, _ = import_thompson_drug()
 
+
 def test_cov_to_prec():
     """Test that we can go from Cp to vector, and from vector to Cp without changing values."""
     x0 = vector_guess(meanShape, rank=3)
