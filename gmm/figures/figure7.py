@@ -7,7 +7,9 @@ import seaborn as sns
 import xarray as xa 
 from .common import subplotLabel, getSetup
 from gmm.scImport import geneNNMF #, import_thompson_drug, normalizeGenes, mu_sigma, gene_filter
+from gmm.tensor import minimize_func, gen_points_GMM
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 
 def makeFigure():
@@ -21,8 +23,10 @@ def makeFigure():
     # filteredGeneDF, logmean, logstd = mu_sigma(genesDF, geneNames)
     # finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value = 1.3)
 
-    drugXA = ThompsonDrugXA(numCells = 290, rank = 2, maxit = 10)
-    print(drugXA)
+
+    drugXA = ThompsonDrugXA(numCells = 290, rank = 20, maxit = 10)
+
+    maximizedNK, optCP, optPTfactors, _, _, preNormOptCP = minimize_func(drugXA, rank = 20, n_cluster=3)
 
     return f
 
