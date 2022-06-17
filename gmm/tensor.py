@@ -9,6 +9,7 @@ from copy import copy
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import KFold
 from jax import value_and_grad, jit, grad
+from jax.experimental.host_callback import id_print
 
 from scipy.optimize import minimize
 from tensorly.cp_tensor import cp_normalize
@@ -19,8 +20,6 @@ markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     """Converts linear vector to factors"""
     vectorIn = jnp.exp(vectorIn)
-    rebuildnk = vectorIn[0 : shape[0]]
-    vectorIn = vectorIn[shape[0] : :]
 
     # Shape of tensor for means or precision matrix
     nN = np.cumsum(np.array(shape) * rank)
@@ -34,14 +33,13 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     pVec = vectorIn[nN[-1] : :].reshape(-1, rank)
     precSym = precSym.at[ai, bi, :].set(pVec)
     factors_pt = [factors[0], precSym, factors[2], factors[3], factors[4]]
-    return rebuildnk, factors, factors_pt
+    return factors, factors_pt
 
 
 def vector_guess(shape: tuple, rank: int):
     """Predetermines total vector that will be maximized for NK, factors and core"""
-    factortotal = np.sum(shape) * rank + int(shape[1] * (shape[1] - 1) / 2 + shape[1]) * rank + shape[0]
+    factortotal = np.sum(shape) * rank + int(shape[1] * (shape[1] - 1) / 2 + shape[1]) * rank
     vector = np.random.normal(loc=-1.0, size=factortotal)
-    vector[0: shape[0]] = 1
     return vector
 
 
@@ -72,16 +70,27 @@ def comparingGMM(zflowDF: xa.DataArray, meanFact, tPrecision: np.ndarray, nk: np
     return loglik
 
 
-def comparingGMMjax(X, nk, meanFact: list, tPrecision):
+def comparingGMMjax(X, meanFact: list, tPrecision, nk=None):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
     to determine the max log-likelihood"""
-    assert nk.ndim == 1
     n_markers = tPrecision.shape[1]
-    nkl = jnp.log(nk / jnp.sum(nk))
     mp = jnp.einsum("iz,jz,kz,lz,mz,ijoklm->ioklm", *meanFact, tPrecision)
     Xp = jnp.einsum("jiklm,njoklm->inoklm", X, tPrecision)
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :, :, :], axis=2))
     log_prob = -0.5 * (n_markers * jnp.log(2 * jnp.pi) + log_prob)
+
+    # We can optionally solve for nk from the data
+    if nk is None:
+        nkl = jnp.sum(log_prob, axis=(0, 2, 3, 4))
+    else:
+        assert nk.ndim == 1
+        nkl = jnp.log(nk)
+
+    # Normalize to sum to 1
+    nkl -= jsp.logsumexp(nkl)
+    # Regularize so that we don't have disappearing gradients
+    nkl = jnp.log(jnp.exp(nkl) + 0.01)
+    nkl -= jsp.logsumexp(nkl)
 
     # The determinant of the precision matrix from the Cholesky decomposition
     # corresponds to the negative half of the determinant of the full precision matrix.
@@ -107,11 +116,11 @@ def covFactor_to_precisions(covFac):
 
 def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
-    nk, meanFact, covFac = vector_to_cp_pt(facVector, rank, shape)
+    meanFact, covFac = vector_to_cp_pt(facVector, rank, shape)
     precBuild = covFactor_to_precisions(covFac)
 
     # Creating function that we want to minimize
-    return -comparingGMMjax(X, nk, meanFact, precBuild)
+    return -comparingGMMjax(X, meanFact, precBuild)
 
 
 def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=200, x0=None):
@@ -137,17 +146,17 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
         tq.update(1)
 
     opts = {"maxiter": maxiter, "disp": False}
-    bounds = ((np.log(1e-1), np.log(1e1)), ) * n_cluster + ((np.log(1e-6), np.log(100.0)), ) * (len(x0) - n_cluster)
+    bounds = ((np.log(1e-6), np.log(100.0)), ) * (len(x0))
     opt = minimize(func, x0, jac=True, hessp=hvpj, callback=callback, method="trust-constr", bounds=bounds, args=args, options=opts)
     tq.close()
 
-    optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
+    optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
     optLL = -opt.fun
     preNormCP = copy(optCP)
     optCP = cp_normalize((None, optCP))
     optVec = opt.x
 
-    return optNK, optCP, optPT, optLL, optVec, preNormCP
+    return optCP, optPT, optLL, optVec, preNormCP
 
 
 def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=200):
