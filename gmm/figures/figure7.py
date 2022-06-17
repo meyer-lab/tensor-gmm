@@ -9,7 +9,6 @@ from .common import subplotLabel, getSetup
 from gmm.scImport import geneNNMF #, import_thompson_drug, normalizeGenes, mu_sigma, gene_filter
 from gmm.tensor import minimize_func, gen_points_GMM
 import matplotlib.pyplot as plt
-import tensorflow as tf
 import jax
 import jax.numpy as jnp
 from sklearn.model_selection import KFold
