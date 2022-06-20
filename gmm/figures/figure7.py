@@ -4,14 +4,12 @@ This creates Figure 7.
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import xarray as xa 
+import xarray as xa
 from .common import subplotLabel, getSetup
 from gmm.scImport import geneNNMF, import_thompson_drug, normalizeGenes, mu_sigma, gene_filter
-import matplotlib.pyplot as plt
-# import jax
-# import jax.numpy as jnp
-from sklearn.model_selection import KFold
-from ..tensor import maxloglik_ptnnp, minimize_func, tensorGMM_CV
+from gmm.tensor import minimize_func, tensorGMM_CV
+
+# jax.config.update('jax_platform_name', 'cpu')
 
 
 def makeFigure():
@@ -19,18 +17,13 @@ def makeFigure():
     # Get list of axis objects
     ax, f = getSetup((10, 8), (2, 3))
 
-   
-    # """Allows JAX to run on GPU"""
-    # # Global flag to set a specific platform, must be used at startup
-    # jax.config.update('jax_platform_name', 'cpu')
-    # x = jnp.square(2)
-    # print(repr(x.device_buffer.device()))  # CpuDevice(id=0)
+    num = 10
+    fac = 2
+    drugXA = ThompsonDrugXA(numCells=num, rank=fac, maxit=10)
 
-    num = 10; fac = 2 
-    drugXA = ThompsonDrugXA(numCells = num, rank = fac, maxit = 10)
-    
-    rank = 2; clust = 2
-    maximizedNK, optCP, optPTfactors, _, _, preNormOptCP = minimize_func(drugXA, rank = rank, n_cluster= clust)
+    rank = 2
+    clust = 2
+    maximizedNK, optCP, _, _, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust)
 
     ax[0].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
     xlabel = "Cluster"
@@ -68,37 +61,40 @@ def makeFigure():
 
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
-    finalDF = pd.read_csv('/opt/andrew/FilteredDrugs_Offset1.3.csv')
+    finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
-    geneComponent, geneFactors = geneNNMF(finalDF, k=rank, verbose=0, maxiteration= maxit)
+    _, geneFactors = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
     cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
-        
+
     PopAlignDF = pd.DataFrame(data=geneFactors, columns=cmpCol)
     PopAlignDF["Drug"] = finalDF["Drug"].values
     PopAlignDF["Cell"] = np.tile(np.arange(1, numCells + 1), int(PopAlignDF.shape[0] / numCells))
-        
+
     PopAlignXA = PopAlignDF.set_index(["Cell", "Drug"]).to_xarray()
     PopAlignXA = PopAlignXA[cmpCol].to_array(dim="Factor")
 
-    npPopAlign = np.reshape(PopAlignXA.to_numpy(), (PopAlignXA.shape[0],PopAlignXA.shape[1], -1, 1, 1 ))
-    PopAlignXA = xa.DataArray(npPopAlign, dims=("Factor", "Cell", "Drug", "Throwaway 1", "Throwaway 2"),
-                coords={"Factor": cmpCol, "Cell": np.arange(1, numCells + 1), "Drug": finalDF["Drug"].unique(), 
-                "Throwaway 1": ["Throwaway"], "Throwaway 2": ["Throwaway"]})
-
+    npPopAlign = np.reshape(PopAlignXA.to_numpy(), (PopAlignXA.shape[0], PopAlignXA.shape[1], -1, 1, 1))
+    PopAlignXA = xa.DataArray(
+        npPopAlign,
+        dims=("Factor", "Cell", "Drug", "Throwaway 1", "Throwaway 2"),
+        coords={
+            "Factor": cmpCol,
+            "Cell": np.arange(1, numCells + 1),
+            "Drug": finalDF["Drug"].unique(),
+            "Throwaway 1": ["Throwaway"],
+            "Throwaway 2": ["Throwaway"],
+        },
+    )
 
     return PopAlignXA
+
 
 def gene_import(offset):
     """Imports gene data from PopAlign and perfroms gene filtering process"""
     genesDF, geneNames = import_thompson_drug()
     genesN = normalizeGenes(genesDF, geneNames)
     filteredGeneDF, logmean, logstd = mu_sigma(genesDF, geneNames)
-    finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value = offset)
+    finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
     return finalDF
-
-
-
-
-
