@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 # import jax
 # import jax.numpy as jnp
 from sklearn.model_selection import KFold
-from ..tensor import maxloglik_ptnnp, minimize_func
+from ..tensor import maxloglik_ptnnp, minimize_func, tensorGMM_CV
 
 
 def makeFigure():
@@ -19,7 +19,12 @@ def makeFigure():
     # Get list of axis objects
     ax, f = getSetup((10, 8), (2, 3))
 
-    # jax_run()
+   
+    # """Allows JAX to run on GPU"""
+    # # Global flag to set a specific platform, must be used at startup
+    # jax.config.update('jax_platform_name', 'cpu')
+    # x = jnp.square(2)
+    # print(repr(x.device_buffer.device()))  # CpuDevice(id=0)
 
     num = 10; fac = 2 
     drugXA = ThompsonDrugXA(numCells = num, rank = fac, maxit = 10)
@@ -49,7 +54,7 @@ def makeFigure():
         row = pd.DataFrame()
         row["Rank"] = ["Rank:" + str(ranknumb[i])]
         for j in range(len(n_cluster)):
-            loglik = geneGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
+            loglik = tensorGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
             row["Cluster:" + str(n_cluster[j])] = loglik
 
         maxloglikDFcv = pd.concat([maxloglikDFcv, row])
@@ -93,30 +98,7 @@ def gene_import(offset):
     finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value = offset)
     return finalDF
 
-# def jax_run():
-#     """Allows JAX to run on GPU"""
-#     # Global flag to set a specific platform, must be used at startup
-#     jax.config.update('jax_platform_name', 'cpu')
-#     x = jnp.square(2)
-#     print(repr(x.device_buffer.device()))  # CpuDevice(id=0)
 
 
-def geneGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=300):
-    """Runs Cross Validation for TensorGMM in order to determine best cluster/rank combo."""
-    logLik = 0.0
-    meanShape = (numClusters, X.shape[0], X.shape[2], X.shape[3], X.shape[4])
-
-    kf = KFold(n_splits=numFolds)
-    x0 = None
-
-    # Start generating splits and running model
-    for train_index, test_index in kf.split(X[:, :, 0, 0, 0].T):
-        # Train
-        _, _, _, _, x0, _ = minimize_func(X[:, train_index, :, :, :], numRank, numClusters, maxiter=maxiter, x0=x0)
-        # Test
-        test_ll = -maxloglik_ptnnp(x0, meanShape, numRank, X[:, test_index, :, :, :].to_numpy())
-        logLik += test_ll
-
-    return float(logLik)
 
 
