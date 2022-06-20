@@ -1,22 +1,21 @@
-from time import time_ns
 import numpy as np
-from sklearn.cluster import MeanShift
 import jax.numpy as jnp
 import jax.scipy.special as jsp
 import tensorly as tl
 from tqdm import tqdm
 import xarray as xa
+import pandas as pd
 from copy import copy
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import KFold
 from jax import value_and_grad, jit, grad
 from jax.experimental.host_callback import id_print
-
 from scipy.optimize import minimize
 from tensorly.cp_tensor import cp_normalize
+import jax
 
 markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
-
+#jax.config.update('jax_platform_name', 'cpu')
 
 def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     """Converts linear vector to factors"""
@@ -117,7 +116,7 @@ def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     return -comparingGMMjax(X, nk, meanFact, precBuild)
 
 
-def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=300, x0=None):
+def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=200, x0=None):
     """Function used to minimize loglikelihood to obtain NK, factors and core of Cp and Pt"""
     meanShape = (n_cluster, zflowTensor.shape[0], zflowTensor.shape[2], zflowTensor.shape[3], zflowTensor.shape[4])
 
@@ -140,7 +139,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
         tq.update(1)
 
     opts = {"maxiter": maxiter, "disp": False}
-    bounds = ((np.log(1e-1), np.log(1e1)), ) * n_cluster + ((np.log(1e-4), np.log(50.0)), ) * (len(x0) - n_cluster)
+    bounds = ((np.log(1e-1), np.log(1e1)), ) * n_cluster + ((np.log(1e-6), np.log(100.0)), ) * (len(x0) - n_cluster)
     opt = minimize(func, x0, jac=True, hessp=hvpj, callback=callback, method="trust-constr", bounds=bounds, args=args, options=opts)
     tq.close()
 
@@ -153,7 +152,7 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     return optNK, optCP, optPT, optLL, optVec, preNormCP
 
 
-def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=300):
+def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=200):
     """Runs Cross Validation for TensorGMM in order to determine best cluster/rank combo."""
     logLik = 0.0
     meanShape = (numClusters, X.shape[0], X.shape[2], X.shape[3], X.shape[4])
@@ -172,24 +171,50 @@ def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=300):
     return float(logLik)
 
 
-def gen_points_GMM(optNK, optCP, optPT, time):
+def gen_points_GMM(optNK, optCP, optPT, time, numClusters):
     """Generates points from a scikit-learn GMM object for a fit NK, CP and PT"""
-    GMM = GaussianMixture(n_components=optNK.size, covariance_type="full").fit([[120, 0], [2, 1], [4, 2], [6, 3], [0, 4], [0, 5], [0, 5], [24, 5], [81, 1], [98, 3], [12, 8], [87, 5], [3, 5]])
+    GMM = GaussianMixture(n_components=optNK.size, covariance_type="full")
     precisions = covFactor_to_precisions(optPT)
-    means = jnp.einsum("iz,jz,kz,lz,mz,ijoklm->ioklm", *optCP, precisions)
-    precisions = precisions[:, :, :, time, 0, 0].reshape([6, 2, 2])
-    covariances = jnp.linalg.inv(precisions)
+    means = tl.cp_to_tensor((None, np.asarray(optCP, dtype=object)))
+    precisions = precisions[:, :, :, time, 0, 0].reshape([numClusters, 2, 2])
 
-    for i in range(0, covariances.shape[0]):
-        covariances = covariances.at[i, 1, 0].set(covariances[i, 0, 1])
+    for i in range(0, precisions.shape[0]):
         precisions = precisions.at[i, 1, 0].set(precisions[i, 0, 1])
+
+    covariances = jnp.linalg.inv(precisions)
+        
     GMM.precisions_ = np.array(precisions)
     GMM.precisions_cholesky_ = np.array(np.linalg.cholesky(precisions))
-    
-    
+
     GMM.weights_ = np.array(optNK / np.sum(optNK))
-    GMM.means_ = np.array(means[:, :, time, 0, 0].reshape([6, 2]))
+    GMM.means_ = np.array(means[:, :, time, 0, 0].reshape([numClusters, 2]))
     GMM.covariances_ = np.array(covariances)
     GMM.converged_ = True
-    points = GMM.sample(500)
-    return points[0]
+    points = GMM.sample(1000)
+    return points
+
+
+def gen_points_GMM_Flow(optNK, optCP, optPT, time, dose, ligand, numClusters):
+    """Generates points from a scikit-learn GMM object for a fit NK, CP and PT"""
+    GMM = GaussianMixture(n_components=optNK.size, covariance_type="full")
+    precisions = covFactor_to_precisions(optPT)
+    means = tl.cp_to_tensor((None, np.asarray(optCP, dtype=object)))
+    precisions = precisions[:, :, :, time, dose, ligand].reshape([numClusters, 5, 5])
+
+    for i in range(0, precisions.shape[0]):
+        for j in range(1, precisions.shape[0]):
+            for k in range(0, j):
+                precisions = precisions.at[i, j, k].set(precisions[i, k, j])
+
+    covariances = jnp.linalg.inv(precisions)
+        
+    GMM.precisions_ = np.array(precisions)
+    GMM.precisions_cholesky_ = np.array(np.linalg.cholesky(precisions))
+
+    GMM.weights_ = np.array(optNK / np.sum(optNK))
+    GMM.means_ = np.array(means[:, :, time, dose, ligand].reshape([numClusters, 5]))
+    GMM.covariances_ = np.array(covariances)
+    GMM.converged_ = True
+    points = GMM.sample(1000)
+    pointsDF = pd.DataFrame({"Cluster": points[1],'Foxp3': points[0][:, 0], 'CD25': points[0][:, 1], 'CD45RA': points[0][:, 2], 'CD4': points[0][:, 3], 'pSTAT5': points[0][:, 4]})
+    return pointsDF

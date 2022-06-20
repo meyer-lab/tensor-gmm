@@ -14,7 +14,6 @@ from sklearn.model_selection import KFold
 from ..tensor import maxloglik_ptnnp, minimize_func
 
 
-
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
