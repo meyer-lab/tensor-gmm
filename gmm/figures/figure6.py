@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import xarray as xa
-import tensorly as tl
 from .common import subplotLabel, getSetup
 from gmm.tensor import minimize_func, gen_points_GMM
 
@@ -14,22 +13,21 @@ def makeFigure():
 
     # Add subplot labels
     subplotLabel(ax)
-    blob_DF = make_synth_pic(magnitude=1000)
+    blob_DF = make_synth_pic(magnitude=80)
     plot_synth_pic(blob_DF, t=0, ax=ax[0])
     plot_synth_pic(blob_DF, t=6, ax=ax[1])
     plot_synth_pic(blob_DF, t=12, ax=ax[2])
     plot_synth_pic(blob_DF, t=19, ax=ax[3])
 
-
     rank = 5
     n_cluster = 4
     blob_xarray = make_blob_tensor(blob_DF)
 
-    maximizedNK, optCP, optPTfactors, _, _, preNormOptCP = minimize_func(blob_xarray, rank=rank, n_cluster=n_cluster)
+    maximizedNK, optCP, optPTfactors, _, _, preNormOptCP = minimize_func(blob_xarray, rank=rank, n_cluster=n_cluster, maxiter=600)
 
     for i in np.arange(0, 4):
         print(i)
-        points = gen_points_GMM(maximizedNK, preNormOptCP, optPTfactors, i * 6, n_cluster)
+        points = gen_points_GMM(maximizedNK, preNormOptCP, optPTfactors, i * 6, 0, 0)
         points_DF = pd.DataFrame({"Cluster": points[1], "X": points[0][:, 0], "Y": points[0][:, 1]})
         sns.scatterplot(data=points_DF, x="X", y="Y", hue="Cluster", palette="tab10", ax=ax[i + 8])
         ax[i+8].set(xlim=(-.2, 2.2), ylim=(-.2, 2.2))
@@ -75,18 +73,16 @@ palette = {"Ground": "khaki",
 def make_synth_pic(magnitude):
     """Makes blob of points depicting beach scene with sinusoidally moving sun"""
     ts = np.arange(0, 101)
+    blob_DF = False
 
     for t in ts:
-        if t == 0:
-            blob_DF = make_blob_art((10, 2), cov=[[20, 0], [0, 0.5]], size=(1 * magnitude), time=t, label="Ground", DF=False)
-        else:
-            blob_DF = make_blob_art((10, 2), cov=[[20, 0], [0, 0.5]], size=int(1 * magnitude), time=t, label="Ground", DF=blob_DF)
+        blob_DF = make_blob_art((10, 2), cov=[[20, 0], [0, 0.5]], size=int(1 * magnitude), time=t, label="Ground", DF=blob_DF)
         blob_DF = make_blob_art((4, 6), cov=[[0.05, 0], [0, 2]], size=int(0.5 * magnitude), time=t, label="Trunk", DF=blob_DF)
         blob_DF = make_blob_art((16, 6), cov=[[0.05, 0], [0, 2]], size=int(0.5 * magnitude), time=t, label="Trunk", DF=blob_DF)
         blob_DF = make_blob_art((4, 10), cov=[[1, 0], [0, 1]], size=int(0.5 * magnitude), time=t, label="Leaf", DF=blob_DF)
         blob_DF = make_blob_art((16, 10), cov=[[1, 0], [0, 1]], size=int(0.5 * magnitude), time=t, label="Leaf", DF=blob_DF)
         blob_DF = make_blob_art((10, 14 + 8 * np.sin(t * 2 * np.pi / (25))), cov=[[0.5, 0], [0, 0.5]], size=int(1 * magnitude), time=t, label="Sun", DF=blob_DF)
-    
+
     return blob_DF
 
 
