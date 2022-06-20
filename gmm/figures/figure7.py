@@ -7,10 +7,9 @@ import seaborn as sns
 import xarray as xa 
 from .common import subplotLabel, getSetup
 from gmm.scImport import geneNNMF #, import_thompson_drug, normalizeGenes, mu_sigma, gene_filter
-from gmm.tensor import minimize_func, gen_points_GMM
 import matplotlib.pyplot as plt
-import jax
-import jax.numpy as jnp
+# import jax
+# import jax.numpy as jnp
 from sklearn.model_selection import KFold
 from ..tensor import maxloglik_ptnnp
 
