@@ -21,7 +21,7 @@ def makeFigure():
     # Get list of axis objects
     ax, f = getSetup((10, 8), (2, 3))
 
-    jax_run()
+    # jax_run()
 
     num = 10; fac = 2 
     drugXA = ThompsonDrugXA(numCells = num, rank = fac, maxit = 10)
@@ -64,6 +64,7 @@ def makeFigure():
 
 
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
+    """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
     finalDF = pd.read_csv('/opt/andrew/FilteredDrugs_Offset1.3.csv')
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
@@ -87,6 +88,7 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     return PopAlignXA
 
 def gene_import(offset):
+    """Imports gene data from PopAlign and perfroms gene filtering process"""
     genesDF, geneNames = import_thompson_drug()
     genesN = normalizeGenes(genesDF, geneNames)
     filteredGeneDF, logmean, logstd = mu_sigma(genesDF, geneNames)
@@ -94,6 +96,7 @@ def gene_import(offset):
     return finalDF
 
 def jax_run():
+    """Allows JAX to run on GPU"""
     # Global flag to set a specific platform, must be used at startup
     jax.config.update('jax_platform_name', 'cpu')
     x = jnp.square(2)
