@@ -6,12 +6,12 @@ import pandas as pd
 import seaborn as sns
 import xarray as xa 
 from .common import subplotLabel, getSetup
-from gmm.scImport import geneNNMF #, import_thompson_drug, normalizeGenes, mu_sigma, gene_filter
+from gmm.scImport import geneNNMF, import_thompson_drug, normalizeGenes, mu_sigma, gene_filter
 import matplotlib.pyplot as plt
 # import jax
 # import jax.numpy as jnp
 from sklearn.model_selection import KFold
-from ..tensor import maxloglik_ptnnp
+from ..tensor import maxloglik_ptnnp, minimize_func
 
 
 
@@ -94,12 +94,12 @@ def gene_import(offset):
     finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value = offset)
     return finalDF
 
-def jax_run():
-    """Allows JAX to run on GPU"""
-    # Global flag to set a specific platform, must be used at startup
-    jax.config.update('jax_platform_name', 'cpu')
-    x = jnp.square(2)
-    print(repr(x.device_buffer.device()))  # CpuDevice(id=0)
+# def jax_run():
+#     """Allows JAX to run on GPU"""
+#     # Global flag to set a specific platform, must be used at startup
+#     jax.config.update('jax_platform_name', 'cpu')
+#     x = jnp.square(2)
+#     print(repr(x.device_buffer.device()))  # CpuDevice(id=0)
 
 
 def geneGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=300):
