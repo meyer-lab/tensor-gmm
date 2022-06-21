@@ -30,31 +30,31 @@ def import_thompson_drug():
         sample_bcs = metafile[metafile.sample_id == cellID].cell_barcode.values  # Obtaining cell bar code values for a specific experiment
         idx = [bc_idx[bc] for bc in sample_bcs]  # Ensuring barcodes match metafile for an expriment
         geneExpression = drugScreen[:, idx].T  # Obtaining all cells associated with a specific experiment (Cells, Gene)
-        cellIdx = np.reshape(np.repeat(cellID, len(sample_bcs)), (-1, 1))  # Connecting drug name with cell
-        geneswithbars = np.hstack([geneExpression, cellIdx])  # Combining both matrices
-        totalGenes = pd.concat([totalGenes, pd.DataFrame(data=geneswithbars)])  # Setting in a DF
+        cellIdx = np.repeat(cellID, len(sample_bcs)) # Connecting drug name with cell
+        drugNames = np.append(drugNames, cellIdx)
+        totalGenes = pd.concat([totalGenes, pd.DataFrame(data=geneExpression)])  # Setting in a DF
         # Only running a few drugs at time to see if works
         # if cellID == "Etodolac":
         #     break
 
-    totalGenes.columns = namingList  # Naming columns
-
-    return totalGenes, genes
+    totalGenes.columns = genes # Attaching gene name to each column
+    totalGenes["Drug"] = drugNames # Attaching drug name to each cell
+    
+    return totalGenes.reset_index(drop=True), genes
 
 
 def normalizeGenes(totalGenes, geneNames):
     """Dividing each gene by the total of each gene"""
-    sumGenes = totalGenes[geneNames].sum(axis=0).tolist()
+    drugNames = totalGenes["Drug"].values
+    totalGenes = totalGenes.drop("Drug", axis=1)
+    sumGenes = totalGenes.sum(axis=0).values
     sumGenes = pd.DataFrame(data=np.reshape(sumGenes, (1, -1)), columns=geneNames)
 
-    normG = totalGenes[geneNames].div(sumGenes, axis=1)
-    normG = normG[geneNames].replace(np.nan, 0)
+    normG = totalGenes.div(sumGenes, axis=1)
+    normG = normG.replace(np.nan, 0)
+    normG["Drug"] = drugNames
 
-    drugs = totalGenes.iloc[:, -1].tolist()
-    drugs = np.reshape(drugs, (-1, 1))
-    normalizeGenesDF = pd.concat([normG, pd.DataFrame(data=drugs, columns=["Drug"])], axis=1)
-
-    return normalizeGenesDF
+    return normG
 
 
 def mu_sigma(geneDF, geneNames):

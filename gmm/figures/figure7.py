@@ -79,14 +79,11 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     PopAlignXA = xa.DataArray(
         npPopAlign,
         dims=("Factor", "Cell", "Drug", "Throwaway 1", "Throwaway 2"),
-        coords={
-            "Factor": cmpCol,
+        coords={"Factor": cmpCol,
             "Cell": np.arange(1, numCells + 1),
             "Drug": finalDF["Drug"].unique(),
             "Throwaway 1": ["Throwaway"],
-            "Throwaway 2": ["Throwaway"],
-        },
-    )
+            "Throwaway 2": ["Throwaway"],},)
 
     return PopAlignXA
 
@@ -95,6 +92,6 @@ def gene_import(offset):
     """Imports gene data from PopAlign and perfroms gene filtering process"""
     genesDF, geneNames = import_thompson_drug()
     genesN = normalizeGenes(genesDF, geneNames)
-    filteredGeneDF, logmean, logstd = mu_sigma(genesDF, geneNames)
+    filteredGeneDF, logmean, logstd = mu_sigma(genesN, geneNames)
     finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
     return finalDF
