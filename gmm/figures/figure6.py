@@ -18,7 +18,7 @@ def makeFigure():
     plot_synth_pic(blob_DF, t=12, ax=ax[2])
     plot_synth_pic(blob_DF, t=19, ax=ax[3])
 
-    rank = 6
+    rank = 5
     n_cluster = 6
     blob_xarray = make_blob_tensor(blob_DF)
 
@@ -63,7 +63,7 @@ palette = {"Ground": "khaki",
 
 def make_synth_pic(magnitude):
     """Makes blob of points depicting beach scene with sinusoidally moving sun"""
-    ts = np.arange(0, 101)
+    ts = np.arange(0, 21)
     blob_DF = None
 
     for t in ts:
