@@ -11,10 +11,9 @@ from jax import value_and_grad, jit, grad
 from jax.experimental.host_callback import id_print
 from scipy.optimize import minimize
 from tensorly.cp_tensor import cp_normalize
-import jax
 
 markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
-# jax.config.update('jax_platform_name', 'cpu')
+
 
 def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     """Converts linear vector to factors"""
@@ -104,7 +103,7 @@ def covFactor_to_precisions(covFac, returnCov=True):
     cholMv = jnp.linalg.inv(cholMv)
     precBuild = jnp.moveaxis(cholMv, (4, 5), (1, 2))
     assert cholBuilt.shape == precBuild.shape
-    return jnp.swapaxes(precBuild, 1, 2)
+    return precBuild
 
 
 def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
@@ -191,7 +190,7 @@ def sample_GMM(weights_, means_, cholCovs, n_samples):
 def gen_points_GMM(optNK, optCP, optPT, time, dose, ligand):
     """Generates points from a scikit-learn GMM object for a fit NK, CP and PT"""
     cholCov = covFactor_to_precisions(optPT, returnCov=True)
-    cholCov = np.squeeze(cholCov[:, :, :, time, dose, ligand])
+    cholCov = np.squeeze(cholCov[:, :, :, time, dose, ligand]) / 100.0
     means = tl.cp_to_tensor((None, optCP))
 
     nk = np.array(optNK / np.sum(optNK))

@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import xarray as xa
 from .common import subplotLabel, getSetup
 from gmm.tensor import minimize_func, gen_points_GMM
 
@@ -19,11 +18,11 @@ def makeFigure():
     plot_synth_pic(blob_DF, t=12, ax=ax[2])
     plot_synth_pic(blob_DF, t=19, ax=ax[3])
 
-    rank = 5
-    n_cluster = 4
+    rank = 6
+    n_cluster = 6
     blob_xarray = make_blob_tensor(blob_DF)
 
-    maximizedNK, optCP, optPTfactors, _, _, preNormOptCP = minimize_func(blob_xarray, rank=rank, n_cluster=n_cluster, maxiter=600)
+    maximizedNK, optCP, optPTfactors, _, _, preNormOptCP = minimize_func(blob_xarray, rank=rank, n_cluster=n_cluster, maxiter=1000)
 
     for i in np.arange(0, 4):
         print(i)
@@ -50,18 +49,10 @@ def makeFigure():
     return f
 
 
-
-def make_blob_art(mean, cov, size, time, label, DF=False):
+def make_blob_art(mean, cov, size, time, label):
     """Makes a labeled DF for storing blob art"""
     X = np.random.multivariate_normal(mean=mean, cov=cov, size=size) / 10
-    blob_DF = pd.DataFrame({"X": X[:, 0], "Y": X[:, 1], "Time": time, "Label": label})
-
-    if isinstance(DF, pd.DataFrame):
-        DF = pd.concat([DF, blob_DF])
-    else:
-        DF = blob_DF
-
-    return DF
+    return pd.DataFrame({"X": X[:, 0], "Y": X[:, 1], "Time": time, "Label": label})
 
 
 palette = {"Ground": "khaki",
@@ -73,15 +64,15 @@ palette = {"Ground": "khaki",
 def make_synth_pic(magnitude):
     """Makes blob of points depicting beach scene with sinusoidally moving sun"""
     ts = np.arange(0, 101)
-    blob_DF = False
+    blob_DF = None
 
     for t in ts:
-        blob_DF = make_blob_art((10, 2), cov=[[20, 0], [0, 0.5]], size=int(1 * magnitude), time=t, label="Ground", DF=blob_DF)
-        blob_DF = make_blob_art((4, 6), cov=[[0.05, 0], [0, 2]], size=int(0.5 * magnitude), time=t, label="Trunk", DF=blob_DF)
-        blob_DF = make_blob_art((16, 6), cov=[[0.05, 0], [0, 2]], size=int(0.5 * magnitude), time=t, label="Trunk", DF=blob_DF)
-        blob_DF = make_blob_art((4, 10), cov=[[1, 0], [0, 1]], size=int(0.5 * magnitude), time=t, label="Leaf", DF=blob_DF)
-        blob_DF = make_blob_art((16, 10), cov=[[1, 0], [0, 1]], size=int(0.5 * magnitude), time=t, label="Leaf", DF=blob_DF)
-        blob_DF = make_blob_art((10, 14 + 8 * np.sin(t * 2 * np.pi / (25))), cov=[[0.5, 0], [0, 0.5]], size=int(1 * magnitude), time=t, label="Sun", DF=blob_DF)
+        blob_DF = pd.concat([blob_DF, make_blob_art((10, 2), cov=[[20, 0], [0, 0.5]], size=int(1 * magnitude), time=t, label="Ground")])
+        blob_DF = pd.concat([blob_DF, make_blob_art((4, 6), cov=[[0.05, 0], [0, 2]], size=int(0.5 * magnitude), time=t, label="Trunk")])
+        blob_DF = pd.concat([blob_DF, make_blob_art((16, 6), cov=[[0.05, 0], [0, 2]], size=int(0.5 * magnitude), time=t, label="Trunk")])
+        blob_DF = pd.concat([blob_DF, make_blob_art((4, 10), cov=[[1, 0], [0, 1]], size=int(0.5 * magnitude), time=t, label="Leaf")])
+        blob_DF = pd.concat([blob_DF, make_blob_art((16, 10), cov=[[1, 0], [0, 1]], size=int(0.5 * magnitude), time=t, label="Leaf")])
+        blob_DF = pd.concat([blob_DF, make_blob_art((10, 14 + 8 * np.sin(t * 2 * np.pi / (25))), cov=[[0.5, 0], [0, 0.5]], size=int(1 * magnitude), time=t, label="Sun")])
 
     return blob_DF
 
@@ -96,16 +87,9 @@ def make_blob_tensor(blob_DF):
     """Makes blob art into 3D tensor with points x coordinate x time as dimensions"""
     times = len(blob_DF.Time.unique())
     points = blob_DF.shape[0] / times
-    dims = 2
-    blob_DF = blob_DF.drop("Label", axis=1).clip(lower=1e-5)
-
-    tensor = np.empty((int(dims), int(points), int(times)))
-    tensor[:] = np.nan
-    for i, time in enumerate(blob_DF.Time.unique()):
-        timeDF = blob_DF.loc[blob_DF["Time"] == time].reset_index()
-        for j, _ in enumerate(np.arange(0, points)):
-            tensor[0, j, i] = timeDF.loc[j, :].X
-            tensor[1, j, i] = timeDF.loc[j, :].Y
-    tensor = tensor.reshape(tensor.shape[0], tensor.shape[1], tensor.shape[2], 1, 1)
-    blob_xarray = xa.DataArray(tensor, dims=("Dimension", "Points", "Time", "Throwaway 1", "Throwaway 2"), coords={"Dimension": ["X", "Y"], "Points": np.arange(0, points), "Time": blob_DF.Time.unique(), "Throwaway 1": ["Throwaway"], "Throwaway 2": ["Throwaway"]})
-    return blob_xarray
+    blob_DF["Points"] = np.tile(np.arange(points, dtype=int), times)
+    blob_DF = blob_DF.drop("Label", axis=1)
+    blob_xa = blob_DF.set_index(["Points", "Time"]).to_xarray().to_array(dim="Dimension")
+    blob_xa = blob_xa.expand_dims(["Throwaway 1", "Throwaway 2"])
+    blob_xa = blob_xa.transpose("Dimension", "Points", "Time", "Throwaway 1", "Throwaway 2")
+    return blob_xa
