@@ -9,21 +9,20 @@ from .common import subplotLabel, getSetup
 from gmm.scImport import geneNNMF, import_thompson_drug, normalizeGenes, mu_sigma, gene_filter
 from gmm.tensor import minimize_func, tensorGMM_CV
 
-# jax.config.update('jax_platform_name', 'cpu')
-
 
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
     ax, f = getSetup((10, 8), (2, 3))
 
-    num = 10
-    fac = 2
-    drugXA = ThompsonDrugXA(numCells=num, rank=fac, maxit=10)
+    num = 290
+    fac = 20
+    drugXA = ThompsonDrugXA(numCells=num, rank=fac, maxit=2000)
 
-    rank = 2
-    clust = 2
-    maximizedNK, optCP, _, _, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust)
+    rank = 5
+    clust = 4
+    maximizedNK, optCP, _, x, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust)
+    print("LogLik",x)
 
     ax[0].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
     xlabel = "Cluster"
@@ -39,7 +38,7 @@ def makeFigure():
     for i in range(0, len(maximizedFactors)):
         sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 1], cmap="Greens")
 
-    ranknumb = np.arange(3, 5)
+    ranknumb = np.arange(2, 4)
     n_cluster = np.arange(2, 4)
 
     maxloglikDFcv = pd.DataFrame()
@@ -48,6 +47,7 @@ def makeFigure():
         row["Rank"] = ["Rank:" + str(ranknumb[i])]
         for j in range(len(n_cluster)):
             loglik = tensorGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
+            print(loglik)
             row["Cluster:" + str(n_cluster[j])] = loglik
 
         maxloglikDFcv = pd.concat([maxloglikDFcv, row])
@@ -61,7 +61,8 @@ def makeFigure():
 
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
-    finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
+    # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
+    finalDF = pd.read_csv("DFcorrected.csv")
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
@@ -92,6 +93,9 @@ def gene_import(offset):
     """Imports gene data from PopAlign and perfroms gene filtering process"""
     genesDF, geneNames = import_thompson_drug()
     genesN = normalizeGenes(genesDF, geneNames)
-    filteredGeneDF, logmean, logstd = mu_sigma(genesN, geneNames)
+    filteredGeneDF, logmean, logstd = mu_sigma(genesN)
     finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
+    
     return finalDF
+
+

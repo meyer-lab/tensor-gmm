@@ -16,7 +16,7 @@ def import_thompson_drug():
 
     metafile = pd.read_csv("gmm/data/meta.csv")  # Cell barcodes, sample id of treatment and sample number (33482,3)
     drugScreen = mmread("/opt/andrew/drugscreen.mtx").toarray()  # Sparse matrix of each cell/genes (32738,33482)-(Genes,Cell)
-    drugScreen = drugScreen.astype(np.int16)
+    drugScreen = drugScreen.astype(np.float64)
     barcodes = np.array([row[0] for row in csv.reader(open("gmm/data/barcodes.tsv"), delimiter="\t")])  # Cell barcodes(33482)
     genes = np.array([row[1].upper() for row in csv.reader(open("gmm/data/features.tsv"), delimiter="\t")])  # Gene Names (32738)
 
@@ -26,6 +26,7 @@ def import_thompson_drug():
 
     namingList = np.append(genes, ["Drug"])  # Forming column name list
     totalGenes = pd.DataFrame()
+    drugNames = []
     for i, cellID in enumerate(metafile["sample_id"].dropna().unique()):  # Enumerating each experiment/drug
         sample_bcs = metafile[metafile.sample_id == cellID].cell_barcode.values  # Obtaining cell bar code values for a specific experiment
         idx = [bc_idx[bc] for bc in sample_bcs]  # Ensuring barcodes match metafile for an expriment
@@ -48,30 +49,31 @@ def normalizeGenes(totalGenes, geneNames):
     drugNames = totalGenes["Drug"].values
     totalGenes = totalGenes.drop("Drug", axis=1)
     sumGenes = totalGenes.sum(axis=0).values
+
     sumGenes = pd.DataFrame(data=np.reshape(sumGenes, (1, -1)), columns=geneNames)
 
     normG = totalGenes.div(sumGenes, axis=1)
     normG = normG.replace(np.nan, 0)
+    
     normG["Drug"] = drugNames
 
     return normG
 
 
-def mu_sigma(geneDF, geneNames):
+def mu_sigma(geneDF):
     """Calculates the mu and sigma for every gene and returns means, sigmas, and dataframe filtered for genes expressed in > 0.1% of cells"""
-    filtDF = geneDF[geneNames].where(geneDF[geneNames] >= 0, 1, inplace=False)
-    filteredGenes = filtDF[geneNames].columns[filtDF.mean(axis=0) > 0.0]
-    filtDF = filtDF[geneNames][filteredGenes]
+    drugNames = geneDF["Drug"].values
+    filtDF = geneDF.drop("Drug", axis=1)
+    
+    inplaceDF = filtDF.where(filtDF >= 0, 1, inplace=False)
 
-    drugs = geneDF.iloc[:, -1].tolist()
-    drugs = np.reshape(drugs, (-1, 1))
-    filteredDF = pd.concat([filtDF, pd.DataFrame(data=drugs, columns=["Drug"])], axis=1)
-
-    means = filtDF.mean(axis=0).to_numpy()
-    std = filtDF.std(axis=0).to_numpy()
+    filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > 0]]
+    means = filteredGenes.mean(axis=0).to_numpy()
+    std = filteredGenes.std(axis=0).to_numpy()
     cv = np.divide(std, means, out=np.zeros_like(std), where=means != 0)
-
-    return filteredDF, np.log10(means), np.log10(cv)
+    filteredGenes["Drug"] = drugNames
+    
+    return filteredGenes, np.log10(means+1e-10), np.log10(cv+1e-10)
 
 
 def gene_filter(geneDF, mean, std, offset_value=1.0):
