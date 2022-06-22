@@ -14,24 +14,6 @@ data_import, other_import = smallDF(10)
 meanShape = (6, data_import.shape[0], data_import.shape[2], data_import.shape[3], data_import.shape[4])
 
 
-def test_cov_fit():
-    """Test that method recreates covariance of data accurately"""
-    cov = [[0.5, 0], [0, 2]]
-    samples = np.random.multivariate_normal([3, 3], cov, 1000).reshape((2, 1000, 1, 1, 1))
-    samples = xa.DataArray(samples, dims=("Dim", "Point", "Throwaway 1", "Throwaway 2", "Throwaway 3"), coords={"Dim": ["X", "Y"], "Point": np.arange(0, 1000), "Throwaway 1": [1], "Throwaway 2": [1], "Throwaway 3": [1]})
-    _, _, optPT, _, _, _ = minimize_func(samples, rank=6, n_cluster=1, maxiter=2000)
-    cholCov = covFactor_to_precisions(optPT, returnCov=True)
-    cholCov = np.squeeze(cholCov[:, :, :, 0, 0, 0])
-    covR = cholCov @ cholCov.T
-    print(covR)
-    print(cov)
-    print(cov[0][0])
-    assert math.isclose(cov[0][0], covR[0][0], rel_tol=0.1)
-    assert math.isclose(cov[1][0], covR[1][0], rel_tol=0.1)
-    assert math.isclose(cov[0][1], covR[0][1], rel_tol=0.1)
-    assert math.isclose(cov[1][1], covR[1][1], rel_tol=0.1)
-
-
 def test_cvGMM():
     """Stub test."""
     gmmDF = cvGMM(data_import, 4, other_import[1])
@@ -121,4 +103,17 @@ def test_fit():
     assert isinstance(ll, float)
 
 
+def test_cov_fit():
+    """Test that tensor-GMM method recreates covariance of data accurately"""
+    cov = [[0.5, 0], [0, 2]]
+    samples = np.transpose(np.random.multivariate_normal([3, 1], cov, 1000)).reshape((2, 1000, 1, 1, 1))
+    samples = xa.DataArray(samples, dims=("Dim", "Point", "Throwaway 1", "Throwaway 2", "Throwaway 3"), coords={"Dim": ["X", "Y"], "Point": np.arange(0, 1000), "Throwaway 1": [1], "Throwaway 2": [1], "Throwaway 3": [1]})
+    _, _, optPT, _, _, _ = minimize_func(samples, rank=6, n_cluster=1, maxiter=2000)
+    cholCov = covFactor_to_precisions(optPT, returnCov=True)
+    cholCov = np.squeeze(cholCov[:, :, :, 0, 0, 0])
+    covR = cholCov @ cholCov.T
 
+    assert math.isclose(cov[0][0], covR[0][0], abs_tol=0.3)
+    assert math.isclose(cov[1][0], covR[1][0], abs_tol=0.2)
+    assert math.isclose(cov[0][1], covR[0][1], abs_tol=0.2)
+    assert math.isclose(cov[1][1], covR[1][1], abs_tol=0.3)
