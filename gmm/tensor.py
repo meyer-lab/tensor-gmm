@@ -7,7 +7,7 @@ import xarray as xa
 from copy import copy
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import KFold
-from jax import value_and_grad, jit, grad
+from jax import value_and_grad, jit
 from jax.experimental.host_callback import id_print
 from jax.lax.linalg import triangular_solve
 from scipy.optimize import minimize
@@ -120,7 +120,7 @@ def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     return -comparingGMMjax(X, nk, meanFact, precBuild)
 
 
-def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=200, x0=None):
+def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=500, x0=None):
     """Function used to minimize loglikelihood to obtain NK, factors and core of Cp and Pt"""
     meanShape = (n_cluster, zflowTensor.shape[0], zflowTensor.shape[2], zflowTensor.shape[3], zflowTensor.shape[4])
 
@@ -130,11 +130,6 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     if x0 is None:
         x0 = vector_guess(meanShape, rank)
 
-    def hvp(x, v, *argss):
-        return grad(lambda x: jnp.vdot(func(x, *argss)[1], v))(x)
-
-    hvpj = jit(hvp, static_argnums=(2, 3))
-
     tq = tqdm(total=maxiter, delay=0.1)
 
     def callback(xk, state):
@@ -143,8 +138,8 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
         tq.update(1)
 
     opts = {"maxiter": maxiter, "disp": False}
-    bounds = ((np.log(1e-1), np.log(1e1)), ) * n_cluster + ((np.log(1e-6), np.log(100.0)), ) * (len(x0) - n_cluster)
-    opt = minimize(func, x0, jac=True, hessp=hvpj, callback=callback, method="trust-constr", bounds=bounds, args=args, options=opts)
+    bounds = ((np.log(0.1), 0.0), ) * n_cluster + ((np.log(1e-6), np.log(100.0)), ) * (len(x0) - n_cluster)
+    opt = minimize(func, x0, jac=True, callback=callback, method="trust-constr", bounds=bounds, args=args, options=opts)
     tq.close()
 
     optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
