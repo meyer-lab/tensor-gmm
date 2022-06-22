@@ -4,9 +4,8 @@ This creates Figure 7.
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import xarray as xa
 from .common import subplotLabel, getSetup
-from gmm.scImport import geneNNMF, import_thompson_drug, normalizeGenes, mu_sigma, gene_filter
+from gmm.scImport import ThompsonDrugXA
 from gmm.tensor import minimize_func, tensorGMM_CV
 
 
@@ -59,43 +58,15 @@ def makeFigure():
     return f
 
 
-def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
-    """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
-    # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
-    finalDF = pd.read_csv("DFcorrected.csv")
-    finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
-    finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
-
-    _, geneFactors = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
-    cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
-
-    PopAlignDF = pd.DataFrame(data=geneFactors, columns=cmpCol)
-    PopAlignDF["Drug"] = finalDF["Drug"].values
-    PopAlignDF["Cell"] = np.tile(np.arange(1, numCells + 1), int(PopAlignDF.shape[0] / numCells))
-
-    PopAlignXA = PopAlignDF.set_index(["Cell", "Drug"]).to_xarray()
-    PopAlignXA = PopAlignXA[cmpCol].to_array(dim="Factor")
-
-    npPopAlign = np.reshape(PopAlignXA.to_numpy(), (PopAlignXA.shape[0], PopAlignXA.shape[1], -1, 1, 1))
-    PopAlignXA = xa.DataArray(
-        npPopAlign,
-        dims=("Factor", "Cell", "Drug", "Throwaway 1", "Throwaway 2"),
-        coords={"Factor": cmpCol,
-            "Cell": np.arange(1, numCells + 1),
-            "Drug": finalDF["Drug"].unique(),
-            "Throwaway 1": ["Throwaway"],
-            "Throwaway 2": ["Throwaway"],},)
-
-    return PopAlignXA
 
 
-def gene_import(offset):
-    """Imports gene data from PopAlign and perfroms gene filtering process"""
-    genesDF, geneNames = import_thompson_drug()
-    genesN = normalizeGenes(genesDF, geneNames)
-    filteredGeneDF, logmean, logstd = mu_sigma(genesN)
-    finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
-    
-    return finalDF
 
+# def test_import_PopAlign():
+#     """Stub test."""
+#     dataTwo, _ = smallDF(data_import.shape[1] * 2)
+#     assert data_import.shape[0] == dataTwo.shape[0]
+#     assert 2 * data_import.shape[1] == dataTwo.shape[1]
+#     assert data_import.shape[2] == dataTwo.shape[2]
+#     assert data_import.shape[3] == dataTwo.shape[3]
+#     assert data_import.shape[4] == dataTwo.shape[4]
 

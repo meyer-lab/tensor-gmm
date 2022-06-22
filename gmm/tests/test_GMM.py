@@ -5,11 +5,12 @@ import pandas as pd
 import numpy as np
 from ..imports import smallDF
 from ..GMM import cvGMM
-from ..scImport import import_thompson_drug
+from ..scImport import import_thompson_drug, ThompsonDrugXA
 from ..tensor import vector_to_cp_pt, comparingGMM, comparingGMMjax, vector_guess, maxloglik_ptnnp, minimize_func, tensorGMM_CV, covFactor_to_precisions
 
 data_import, other_import = smallDF(10)
 meanShape = (6, data_import.shape[0], data_import.shape[2], data_import.shape[3], data_import.shape[4])
+dataPA_import = ThompsonDrugXA(numCells=10, rank=10, maxit=20)
 
 
 def test_cvGMM():
