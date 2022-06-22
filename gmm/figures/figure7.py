@@ -17,7 +17,7 @@ def makeFigure():
     num = 290
     fac = 20
     drugXA = ThompsonDrugXA(numCells=num, rank=fac, maxit=2000)
-
+    
     rank = 5
     clust = 4
     maximizedNK, optCP, _, x, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust)
@@ -56,17 +56,3 @@ def makeFigure():
     ax[4].set(title="Cross Validation")
 
     return f
-
-
-
-
-
-# def test_import_PopAlign():
-#     """Stub test."""
-#     dataTwo, _ = smallDF(data_import.shape[1] * 2)
-#     assert data_import.shape[0] == dataTwo.shape[0]
-#     assert 2 * data_import.shape[1] == dataTwo.shape[1]
-#     assert data_import.shape[2] == dataTwo.shape[2]
-#     assert data_import.shape[3] == dataTwo.shape[3]
-#     assert data_import.shape[4] == dataTwo.shape[4]
-

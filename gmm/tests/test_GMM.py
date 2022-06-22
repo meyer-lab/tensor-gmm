@@ -100,3 +100,13 @@ def test_fit():
     loglik = tensorGMM_CV(data_import, numFolds=3, numClusters=3, numRank=2, maxiter=20)
     assert isinstance(loglik, float)
     assert isinstance(ll, float)
+    
+    
+def test_import_PopAlign():
+    """Stub test."""
+    dataPA_two = ThompsonDrugXA(numCells=20, rank=20, maxit=20)
+    assert 2 * dataPA_import.shape[0] == dataPA_two.shape[0]
+    assert 2 * dataPA_import.shape[1] == dataPA_two.shape[1]
+    assert dataPA_import.shape[2] == dataPA_two.shape[2]
+    assert dataPA_import.shape[3] == dataPA_two.shape[3]
+    assert dataPA_import.shape[4] == dataPA_two.shape[4]
