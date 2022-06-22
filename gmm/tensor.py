@@ -177,6 +177,7 @@ def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=200):
 
 def sample_GMM(weights_, means_, cholCovs, n_samples):
     n_samples_comp = np.random.multinomial(n_samples, weights_)
+    print(print(cholCovs[0, :, :] @ cholCovs[0, :, :].T))
 
     X = np.vstack(
         [
