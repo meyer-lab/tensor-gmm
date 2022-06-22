@@ -4,13 +4,16 @@ import jax.scipy.special as jsp
 import tensorly as tl
 from tqdm import tqdm
 import xarray as xa
-import pandas as pd
 from copy import copy
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import KFold
 from jax import value_and_grad, jit, grad
 from jax.experimental.host_callback import id_print
+<<<<<<< remove-nk
 
+=======
+from jax.lax.linalg import triangular_solve
+>>>>>>> main
 from scipy.optimize import minimize
 from tensorly.cp_tensor import cp_normalize
 
@@ -79,6 +82,7 @@ def comparingGMMjax(X, meanFact: list, tPrecision, nk=None):
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :, :, :], axis=2))
     log_prob = -0.5 * (n_markers * jnp.log(2 * jnp.pi) + log_prob)
 
+<<<<<<< remove-nk
     # We can optionally solve for nk from the data
     if nk is None:
         nkl = jnp.sum(log_prob, axis=(0, 2, 3, 4))
@@ -92,6 +96,9 @@ def comparingGMMjax(X, meanFact: list, tPrecision, nk=None):
     nkl = jnp.log(jnp.exp(nkl) + 0.01)
     nkl -= jsp.logsumexp(nkl)
 
+=======
+    # Need to check here for the sum 
+>>>>>>> main
     # The determinant of the precision matrix from the Cholesky decomposition
     # corresponds to the negative half of the determinant of the full precision matrix.
     # In short: det(precision_chol) = - det(precision) / 2
@@ -104,14 +111,19 @@ def comparingGMMjax(X, meanFact: list, tPrecision, nk=None):
     return loglik
 
 
-def covFactor_to_precisions(covFac):
+def covFactor_to_precisions(covFac, returnCov=False):
     """Convert from the cholesky decomposition of the covariance matrix, to the precision matrix."""
-    cholBuilt = jnp.einsum("ax,bcx,dx,ex,fx->abcdef", *covFac)
-    cholMv = jnp.moveaxis(cholBuilt, (1, 2), (4, 5))
-    cholMv = jnp.linalg.inv(cholMv)
-    precBuild = jnp.moveaxis(cholMv, (4, 5), (1, 2))
-    assert cholBuilt.shape == precBuild.shape
-    return jnp.swapaxes(precBuild, 1, 2)
+    covBuilt = jnp.einsum("ax,bcx,dx,ex,fx->abcdef", *covFac)
+    origShape = covBuilt.shape
+    if returnCov:
+        return covBuilt
+    covBuilt = jnp.moveaxis(covBuilt, (1, 2), (4, 5))
+    Y = jnp.broadcast_to(jnp.eye(covBuilt.shape[4])[jnp.newaxis, jnp.newaxis, jnp.newaxis, jnp.newaxis, :, :], covBuilt.shape)
+    assert covBuilt.shape == Y.shape
+    precBuild = triangular_solve(covBuilt, Y, lower=True)
+    precBuild = jnp.moveaxis(precBuild, (4, 5), (1, 2))
+    assert origShape == precBuild.shape
+    return precBuild
 
 
 def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
@@ -178,50 +190,30 @@ def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=200):
     return float(logLik)
 
 
-def gen_points_GMM(optNK, optCP, optPT, time, numClusters):
+def sample_GMM(weights_, means_, cholCovs, n_samples):
+    n_samples_comp = np.random.multinomial(n_samples, weights_)
+
+    X = np.vstack(
+        [
+            np.random.multivariate_normal(mean, cholCov @ cholCov.T, int(sample))
+            for (mean, cholCov, sample) in zip(
+                means_, cholCovs, n_samples_comp
+            )
+        ]
+    )
+    y = np.concatenate(
+        [np.full(sample, j, dtype=int) for j, sample in enumerate(n_samples_comp)]
+    )
+    return X, y
+
+
+def gen_points_GMM(optNK, optCP, optPT, time, dose, ligand):
     """Generates points from a scikit-learn GMM object for a fit NK, CP and PT"""
-    GMM = GaussianMixture(n_components=optNK.size, covariance_type="full")
-    precisions = covFactor_to_precisions(optPT)
-    means = jnp.einsum("iz,jz,kz,lz,mz,ijoklm->ioklm", *optCP, precisions)
-    precisions = precisions[:, :, :, time, 0, 0].reshape([numClusters, 2, 2])
+    cholCov = covFactor_to_precisions(optPT, returnCov=True)
+    cholCov = np.squeeze(cholCov[:, :, :, time, dose, ligand])
+    means = tl.cp_to_tensor((None, optCP))
 
-    for i in range(0, precisions.shape[0]):
-        precisions = precisions.at[i, 1, 0].set(precisions[i, 0, 1])
-
-    covariances = jnp.linalg.inv(precisions)
-        
-    GMM.precisions_ = np.array(precisions)
-    GMM.precisions_cholesky_ = np.array(np.linalg.cholesky(precisions))
-
-    GMM.weights_ = np.array(optNK / np.sum(optNK))
-    GMM.means_ = np.array(means[:, :, time, 0, 0].reshape([numClusters, 2]))
-    GMM.covariances_ = np.array(covariances)
-    GMM.converged_ = True
-    points = GMM.sample(1000)
-    return points[0]
-
-
-def gen_points_GMM_Flow(optNK, optCP, optPT, time, dose, ligand, numClusters):
-    """Generates points from a scikit-learn GMM object for a fit NK, CP and PT"""
-    GMM = GaussianMixture(n_components=optNK.size, covariance_type="full")
-    precisions = covFactor_to_precisions(optPT)
-    means = jnp.einsum("iz,jz,kz,lz,mz,ijoklm->ioklm", *optCP, precisions)
-    precisions = precisions[:, :, :, time, dose, ligand].reshape([numClusters, 5, 5])
-
-    for i in range(0, precisions.shape[0]):
-        for j in range(1, precisions.shape[0]):
-            for k in range(0, j):
-                precisions = precisions.at[i, j, k].set(precisions[i, k, j])
-
-    covariances = jnp.linalg.inv(precisions)
-        
-    GMM.precisions_ = np.array(precisions)
-    GMM.precisions_cholesky_ = np.array(np.linalg.cholesky(precisions))
-
-    GMM.weights_ = np.array(optNK / np.sum(optNK))
-    GMM.means_ = np.array(means[:, :, time, dose, ligand].reshape([numClusters, 5]))
-    GMM.covariances_ = np.array(covariances)
-    GMM.converged_ = True
-    points = GMM.sample(1000)
-    pointsDF = pd.DataFrame({"Cluster": points[1],'Foxp3': points[0][:, 0], 'CD25': points[0][:, 1], 'CD45RA': points[0][:, 2], 'CD4': points[0][:, 3], 'pSTAT5': points[0][:, 4]})
-    return pointsDF
+    nk = optNK / np.sum(optNK)
+    means = np.squeeze(means[:, :, time, dose, ligand])
+    samples = sample_GMM(nk, means, cholCov, 1000)
+    return samples
