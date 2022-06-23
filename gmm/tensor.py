@@ -102,7 +102,7 @@ def comparingGMMjax_NK(X, nk, meanFact: list, tPrecision):
     n_markers = tPrecision.shape[1]
     nkl = jnp.log(nk / jnp.sum(nk))
     mp = jnp.einsum("iz,jz,kz,ijok->iok", *meanFact, tPrecision)
-    Xp = jnp.einsum("jik,njok->inokl", X, tPrecision)
+    Xp = jnp.einsum("jik,njok->inok", X, tPrecision)
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :], axis=2))
     log_prob = -0.5 * (n_markers * jnp.log(2 * jnp.pi) + log_prob)
 
