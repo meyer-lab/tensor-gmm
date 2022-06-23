@@ -116,6 +116,6 @@ def test_import_PopAlign():
 def test_finite_data():
     """Test that all values in tensor has no NaN"""
 
-    assert np.isfinite(data_import.to_numpy())
-    assert np.isfinite(dataPA_import.to_numpy())
+    assert np.isfinite(data_import.to_numpy()).all()
+    assert np.isfinite(dataPA_import.to_numpy()).all()
     
