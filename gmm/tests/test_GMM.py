@@ -102,8 +102,8 @@ def test_fit():
     loglik = tensorGMM_CV(data_import, numFolds=3, numClusters=3, numRank=2, maxiter=20)
     assert isinstance(loglik, float)
     assert isinstance(ll, float)
-    
-    
+
+
 def test_import_PopAlign():
     """Stub test."""
     dataPA_two = ThompsonDrugXA(numCells=20, rank=20, maxit=20)
@@ -112,15 +112,13 @@ def test_import_PopAlign():
     assert dataPA_import.shape[2] == dataPA_two.shape[2]
     assert dataPA_import.shape[3] == dataPA_two.shape[3]
     assert dataPA_import.shape[4] == dataPA_two.shape[4]
-    
-    
+
 
 def test_finite_data():
     """Test that all values in tensor has no NaN"""
 
     assert np.isfinite(data_import.to_numpy()).all()
     assert np.isfinite(dataPA_import.to_numpy()).all()
-    
 
 
 def test_cov_fit():
