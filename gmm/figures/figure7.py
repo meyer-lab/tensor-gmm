@@ -16,10 +16,6 @@ def makeFigure():
     ax, f = getSetup((10, 8), (2, 3))
     
     ax[5].axis("off")
-    
-    # a= gene_import(1.3)
-    # a.to_csv('DF.csv')
-    
 
     num = 290
     fac = 20
@@ -45,23 +41,23 @@ def makeFigure():
     for i in range(0, len(maximizedFactors)):
         sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 1], cmap="Greens")
 
-    ranknumb = np.arange(2, 6)
-    n_cluster = np.arange(2, 6)
+    # ranknumb = np.arange(2, 6)
+    # n_cluster = np.arange(2, 6)
 
-    maxloglikDFcv = pd.DataFrame()
-    for i in range(len(ranknumb)):
-        row = pd.DataFrame()
-        row["Rank"] = ["Rank:" + str(ranknumb[i])]
-        for j in range(len(n_cluster)):
-            loglik = tensorGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
-            print(loglik)
-            row["Cluster:" + str(n_cluster[j])] = loglik
+    # maxloglikDFcv = pd.DataFrame()
+    # for i in range(len(ranknumb)):
+    #     row = pd.DataFrame()
+    #     row["Rank"] = ["Rank:" + str(ranknumb[i])]
+    #     for j in range(len(n_cluster)):
+    #         loglik = tensorGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
+    #         print("LogLik", loglik)
+    #         row["Cluster:" + str(n_cluster[j])] = loglik
 
-        maxloglikDFcv = pd.concat([maxloglikDFcv, row])
+    #     maxloglikDFcv = pd.concat([maxloglikDFcv, row])
 
-    maxloglikDFcv = maxloglikDFcv.set_index("Rank")
-    sns.heatmap(data=maxloglikDFcv, ax=ax[4])
-    ax[4].set(title="Cross Validation")
+    # maxloglikDFcv = maxloglikDFcv.set_index("Rank")
+    # sns.heatmap(data=maxloglikDFcv, ax=ax[4])
+    # ax[4].set(title="Cross Validation")
 
     return f
 
