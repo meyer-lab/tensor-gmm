@@ -107,7 +107,7 @@ def geneNNMF(X, k=14, verbose=0, maxiteration=2000):
     return model.components_, W
 
 
-def gene_import(offset):
+def gene_import(offset: int):
     """Imports gene data from PopAlign and perfroms gene filtering process"""
     genesDF, geneNames = import_thompson_drug()
     genesN = normalizeGenes(genesDF, geneNames)

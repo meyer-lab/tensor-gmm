@@ -95,6 +95,29 @@ def comparingGMMjax(X, nk, meanFact: list, tPrecision):
     loglik = jnp.sum(jsp.logsumexp(log_prob + log_det[jnp.newaxis, :, :, :, :] + nkl[jnp.newaxis, :, jnp.newaxis, jnp.newaxis, jnp.newaxis], axis=1))
     return loglik
 
+def comparingGMMjax_NK(X, nk, meanFact: list, tPrecision):
+    """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
+    to determine the max log-likelihood"""
+    assert nk.ndim == 1
+    n_markers = tPrecision.shape[1]
+    nkl = jnp.log(nk / jnp.sum(nk))
+    mp = jnp.einsum("iz,jz,kz,ijok->iok", *meanFact, tPrecision)
+    Xp = jnp.einsum("jik,njok->inokl", X, tPrecision)
+    log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :], axis=2))
+    log_prob = -0.5 * (n_markers * jnp.log(2 * jnp.pi) + log_prob)
+
+    # Need to check here for the sum 
+    # The determinant of the precision matrix from the Cholesky decomposition
+    # corresponds to the negative half of the determinant of the full precision matrix.
+    # In short: det(precision_chol) = - det(precision) / 2
+    ppp = jnp.diagonal(tPrecision, axis1=1, axis2=2)
+    log_det = jnp.sum(jnp.log(ppp), axis=-1)
+
+    # Since we are using the precision of the Cholesky decomposition,
+    # `- 0.5 * log_det_precision` becomes `+ log_det_precision_chol`
+    loglik = jnp.sum(jsp.logsumexp(log_prob + log_det[jnp.newaxis, :, :] + nkl[jnp.newaxis, :, :], axis=1))
+    return loglik
+
 
 def covFactor_to_precisions(covFac, returnCov=False):
     """Convert from the cholesky decomposition of the covariance matrix, to the precision matrix."""
@@ -111,14 +134,18 @@ def covFactor_to_precisions(covFac, returnCov=False):
     return precBuild
 
 
-def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
+def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X, nk_rearrange=False):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
+    # Creating function that we want to minimize
     nk, meanFact, covFac = vector_to_cp_pt(facVector, rank, shape)
     precBuild = covFactor_to_precisions(covFac)
-
-    # Creating function that we want to minimize
-    return -comparingGMMjax(X, nk, meanFact, precBuild) / X.shape[1]
-
+    if nk_rearrange == False:
+        loglik = -comparingGMMjax(X, nk, meanFact, precBuild)
+    else:
+        loglik = -comparingGMMjax_NK(X, nk, meanFact, precBuild, nk_rearrange=False)
+    
+    return loglik
+        
 
 def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=200, x0=None):
     """Function used to minimize loglikelihood to obtain NK, factors and core of Cp and Pt"""
@@ -179,9 +206,13 @@ def sample_GMM(weights_, means_, cholCovs, n_samples):
     n_samples_comp = np.random.multinomial(n_samples, weights_)
 
     X = np.vstack(
-        [np.random.multivariate_normal(mean, cholCov @ cholCov.T, int(sample))
+        [
+            np.random.multivariate_normal(mean, cholCov @ cholCov.T, int(sample))
             for (mean, cholCov, sample) in zip(
-                means_, cholCovs, n_samples_comp)])
+                means_, cholCovs, n_samples_comp
+            )
+        ]
+    )
     y = np.concatenate(
         [np.full(sample, j, dtype=int) for j, sample in enumerate(n_samples_comp)]
     )
