@@ -70,5 +70,4 @@ def reorder_table(df):
     y = sch.linkage(df.to_numpy(), method='centroid')
     index = sch.dendrogram(y, orientation='right')['leaves']
         
-        
     return df.iloc[index, :]
