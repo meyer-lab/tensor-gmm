@@ -7,7 +7,6 @@ from scipy.io import mmread
 from scipy.stats import linregress
 
 
-
 def import_thompson_drug():
     """Imports cell readings from scRNA-seq data from PBMCs from PopAlign paper"
     -Description of each file-
@@ -117,6 +116,7 @@ def gene_import(offset):
 
     return finalDF
 
+
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
     finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
@@ -144,5 +144,3 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
             "Throwaway 2": ["Throwaway"],},)
 
     return PopAlignXA
-
-
