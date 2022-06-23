@@ -110,3 +110,12 @@ def test_import_PopAlign():
     assert dataPA_import.shape[2] == dataPA_two.shape[2]
     assert dataPA_import.shape[3] == dataPA_two.shape[3]
     assert dataPA_import.shape[4] == dataPA_two.shape[4]
+    
+    
+
+def test_finite_data():
+    """Test that all values in tensor has no NaN"""
+
+    assert np.isfinite(data_import.to_numpy())
+    assert np.isfinite(dataPA_import.to_numpy())
+    

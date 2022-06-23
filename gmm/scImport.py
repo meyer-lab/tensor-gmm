@@ -59,7 +59,7 @@ def normalizeGenes(totalGenes, geneNames):
     
     normG["Drug"] = drugNames
 
-    return normG
+    return normG 
 
 
 def mu_sigma(geneDF):
@@ -85,8 +85,18 @@ def gene_filter(geneDF, mean, std, offset_value=1.0):
 
     above_idx = np.where(std > mean * slope + inter)
     finalDF = geneDF.iloc[:, np.append(np.asarray(above_idx).flatten(), geneDF.shape[1] - 1)]
+    
+    drugNames = geneDF["Drug"].values
+    filtDF = geneDF.drop("Drug", axis=1)
+    
+    maxGenes = pd.DataFrame(data=np.reshape(filtDF.max(axis=0).values, (1, -1)), columns=filtDF.columns.values)
+    normMaxG = filtDF.div(maxGenes, axis=1)
+    normMaxG = normMaxG.replace(np.nan, 0)
+    
+    normMaxG["Drug"] = drugNames
+    
 
-    return finalDF, above_idx
+    return normMaxG, above_idx
 
 
 def geneNNMF(X, k=14, verbose=0, maxiteration=2000):
@@ -104,13 +114,14 @@ def gene_import(offset):
     genesN = normalizeGenes(genesDF, geneNames)
     filteredGeneDF, logmean, logstd = mu_sigma(genesN)
     finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
-    
+
     return finalDF
 
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
-    finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
-    # finalDF = pd.read_csv("DFcorrected.csv")
+    # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
+    # finalDF = pd.read_csv("NormFiltDrugs_Offset1.3.csv")
+    finalDF = pd.read_csv("DF.csv")
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
