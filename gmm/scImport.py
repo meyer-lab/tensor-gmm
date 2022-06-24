@@ -5,6 +5,7 @@ import xarray as xa
 from sklearn.decomposition import NMF
 from scipy.io import mmread
 from scipy.stats import linregress
+import tensorly as tl
 
 
 def import_thompson_drug():
@@ -103,8 +104,9 @@ def geneNNMF(X, k=14, verbose=0, maxiteration=2000):
     model = NMF(n_components=k, verbose=verbose, max_iter=maxiteration, tol=1e-6)
     X = X.drop("Drug", axis=1)
     W = model.fit_transform(X.to_numpy())
+    sse_error = model.reconstruction_err_
 
-    return model.components_, W
+    return model.components_, W, sse_error
 
 
 def gene_import(offset):
@@ -123,7 +125,8 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
-    _, geneFactors = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
+    _, geneFactors, _ = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
+    rank_vector, varexpl_NMF = tensor_R2X(finalDF, rank, maxit)
     cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
 
     PopAlignDF = pd.DataFrame(data=geneFactors, columns=cmpCol)
@@ -143,4 +146,19 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
             "Throwaway 1": ["Throwaway"],
             "Throwaway 2": ["Throwaway"],},)
 
-    return PopAlignXA
+    return PopAlignXA, rank_vector, varexpl_NMF
+
+def tensor_R2X(tensor, maxrank, maxit):
+    """ Calculates the R2X value even where NaN values are present"""
+    rank = np.arange(1,maxrank)
+    varexpl = np.empty(len(rank))
+    tensor_nodrug = tensor.drop("Drug", axis=1)
+
+    for i in range(len(rank)):
+        _, _, sse_error = geneNNMF(tensor, k=rank[i], verbose=0, maxiteration=maxit)
+        print(sse_error)
+        vTop = 0.0
+        print(np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
+        vTop += sse_error - np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy())))
+        varexpl[i] = vTop
+    return rank, varexpl
