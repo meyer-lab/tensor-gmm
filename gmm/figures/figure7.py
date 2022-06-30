@@ -9,31 +9,37 @@ from gmm.scImport import ThompsonDrugXA, gene_import
 from gmm.tensor import minimize_func, tensorGMM_CV
 import scipy.cluster.hierarchy as sch
 
-
-
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
     ax, f = getSetup((10, 8), (2, 3))
     
     ax[5].axis("off")
+    newdiv = gene_import(1.3)
+    
 
-    num = 290
-    fac = 20
-    drugXA, fac_vector, varexpl_NMF = ThompsonDrugXA(numCells=num, rank=fac, maxit=2000)
-    ax[0].plot(fac_vector, varexpl_NMF, "r")
-    xlabel = "Number of Components"
-    ylabel = "R2X"
-    ax[0].set(xlabel=xlabel, ylabel=ylabel)
-    # rank = 5
+    # newdiv.to_csv('finallydividx/xed.csv')
+    
+    
+    # num = 290
+
+    # fac = 20
+    # drugXA, fac_vector, varexpl_NMF = ThompsonDrugXA(numCells=num, rank=fac, maxit=2000)
+    # ax[0].plot(fac_vector, varexpl_NMF, "r")
+    # xlabel = "Number of Components"
+    # ylabel = "R2X"
+    # ax[0].set(xlabel=xlabel, ylabel=ylabel)
+
+
+    # rank = 6
     # clust = 4
     # maximizedNK, optCP, _, x, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust)
     # print("LogLik", x)
 
-    # ax[0].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
+    # ax[1].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
     # xlabel = "Cluster"
     # ylabel = "NK Value"
-    # ax[0].set(xlabel=xlabel, ylabel=ylabel)
+    # ax[1].set(xlabel=xlabel, ylabel=ylabel)
 
     # cmpCol = [f"Fac. {i}" for i in np.arange(1, fac + 1)]
     # rankCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
@@ -43,7 +49,9 @@ def makeFigure():
     # maximizedFactors[2] = reorder_table(maximizedFactors[2])
 
     # for i in range(0, len(maximizedFactors)):
-    #     sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 1], cmap="Greens")
+    #     # sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 2], cmap="Greens")
+    #     sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 2])
+
 
     # ranknumb = np.arange(2, 6)
     # n_cluster = np.arange(2, 6)
@@ -59,9 +67,12 @@ def makeFigure():
 
     #     maxloglikDFcv = pd.concat([maxloglikDFcv, row])
 
+
     # maxloglikDFcv = maxloglikDFcv.set_index("Rank")
     # sns.heatmap(data=maxloglikDFcv, ax=ax[4])
     # ax[4].set(title="Cross Validation")
+
+
 
     return f
 
@@ -72,3 +83,6 @@ def reorder_table(df):
     index = sch.dendrogram(y, orientation='right')['leaves']
         
     return df.iloc[index, :]
+
+
+

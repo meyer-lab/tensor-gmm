@@ -1,3 +1,5 @@
+import enum
+from inspect import getinnerframes
 import numpy as np
 import pandas as pd
 import csv
@@ -18,7 +20,7 @@ def import_thompson_drug():
 
     metafile = pd.read_csv("gmm/data/meta.csv")  # Cell barcodes, sample id of treatment and sample number (33482,3)
     drugScreen = mmread("/opt/andrew/drugscreen.mtx").toarray()  # Sparse matrix of each cell/genes (32738,33482)-(Genes,Cell)
-    drugScreen = drugScreen.astype(np.float64)
+    drugScreen = drugScreen.astype(np.int32)
     barcodes = np.array([row[0] for row in csv.reader(open("gmm/data/barcodes.tsv"), delimiter="\t")])  # Cell barcodes(33482)
     genes = np.array([row[1].upper() for row in csv.reader(open("gmm/data/features.tsv"), delimiter="\t")])  # Gene Names (32738)
 
@@ -36,43 +38,49 @@ def import_thompson_drug():
         cellIdx = np.repeat(cellID, len(sample_bcs)) # Connecting drug name with cell
         drugNames = np.append(drugNames, cellIdx)
         totalGenes = pd.concat([totalGenes, pd.DataFrame(data=geneExpression)])  # Setting in a DF
-        # Only running a few drugs at time to see if works
-        # if cellID == "Etodolac":
-        #     break
 
     totalGenes.columns = genes # Attaching gene name to each column
+    # totalGenes= totalGenes.fillna(0)
     totalGenes["Drug"] = drugNames # Attaching drug name to each cell
     
     return totalGenes.reset_index(drop=True), genes
 
-
-def normalizeGenes(totalGenes, geneNames):
-    """Dividing each gene by the total of each gene"""
-    drugNames = totalGenes["Drug"].values
-    totalGenes = totalGenes.drop("Drug", axis=1)
-    sumGenes = totalGenes.sum(axis=0).values
-
-    sumGenes = pd.DataFrame(data=np.reshape(sumGenes, (1, -1)), columns=geneNames)
-
-    normG = totalGenes.div(sumGenes, axis=1)
-    normG = normG.replace(np.nan, 0)
-    
-    normG["Drug"] = drugNames
-
-    return normG 
-
-
-def mu_sigma(geneDF):
+def mu_sigma_normalize(geneDF):
     """Calculates the mu and sigma for every gene and returns means, sigmas, and dataframe filtered for genes expressed in > 0.1% of cells"""
     drugNames = geneDF["Drug"].values
     filtDF = geneDF.drop("Drug", axis=1)
     
+    assert np.isnan(filtDF.to_numpy()).all() == False
+    assert np.isfinite(filtDF.to_numpy()).all() == True
+    
     inplaceDF = filtDF.where(filtDF >= 0, 1, inplace=False)
+    filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > .001]]
 
-    filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > 0]]
+    sumGenes = filteredGenes.sum(axis=0).values
+    justDF = filteredGenes.to_numpy()
+    
+    assert np.isnan(justDF).all() == False
+    assert np.isfinite(justDF).all() == True
+    assert np.isnan(sumGenes).all() == False
+    assert np.isfinite(sumGenes).all() == True
+    assert sumGenes.all() == 0 
+    
+    divDF = np.divide(justDF, sumGenes)
+    print(sumGenes)
+    print(divDF)
+    print(np.shape(justDF))
+    print(np.shape(divDF))
+    assert np.isnan(divDF).all() == False
+    assert np.isfinite(divDF).all() == True
+
+    
+
+    # normG = filteredGenes.div(sumGenes, axis=1)
+  
     means = filteredGenes.mean(axis=0).to_numpy()
     std = filteredGenes.std(axis=0).to_numpy()
     cv = np.divide(std, means, out=np.zeros_like(std), where=means != 0)
+    
     filteredGenes["Drug"] = drugNames
     
     return filteredGenes, np.log10(means+1e-10), np.log10(cv+1e-10)
@@ -85,18 +93,8 @@ def gene_filter(geneDF, mean, std, offset_value=1.0):
 
     above_idx = np.where(std > mean * slope + inter)
     finalDF = geneDF.iloc[:, np.append(np.asarray(above_idx).flatten(), geneDF.shape[1] - 1)]
-    
-    drugNames = geneDF["Drug"].values
-    filtDF = geneDF.drop("Drug", axis=1)
-    
-    maxGenes = pd.DataFrame(data=np.reshape(filtDF.max(axis=0).values, (1, -1)), columns=filtDF.columns.values)
-    normMaxG = filtDF.div(maxGenes, axis=1)
-    normMaxG = normMaxG.replace(np.nan, 0)
-    
-    normMaxG["Drug"] = drugNames
-    
 
-    return normMaxG, above_idx
+    return finalDF, above_idx
 
 
 def geneNNMF(X, k=14, verbose=0, maxiteration=2000):
@@ -104,6 +102,7 @@ def geneNNMF(X, k=14, verbose=0, maxiteration=2000):
     model = NMF(n_components=k, verbose=verbose, max_iter=maxiteration, tol=1e-6)
     X = X.drop("Drug", axis=1)
     W = model.fit_transform(X.to_numpy())
+
     sse_error = model.reconstruction_err_
 
     return model.components_, W, sse_error
@@ -112,23 +111,28 @@ def geneNNMF(X, k=14, verbose=0, maxiteration=2000):
 def gene_import(offset):
     """Imports gene data from PopAlign and perfroms gene filtering process"""
     genesDF, geneNames = import_thompson_drug()
-    genesN = normalizeGenes(genesDF, geneNames)
-    filteredGeneDF, logmean, logstd = mu_sigma(genesN)
+    filteredGeneDF, logmean, logstd = mu_sigma_normalize(genesDF)
     finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
-
+    print(finalDF)
     return finalDF
 
 
-def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
+def ThompsonDrugXA(numCells: int, rank: int, maxit: int, r2x=False):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
-    finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
+    # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
+    # finalDF = pd.read_csv("final.csv")
+    finalDF = pd.read_csv('newdiv.csv')
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
-    _, geneFactors, _ = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
-    rank_vector, varexpl_NMF = tensor_R2X(finalDF, rank, maxit)
-    cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
 
+    _, geneFactors, _ = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
+    if r2x == True:
+        rank_vector, varexpl_NMF = tensor_R2X(finalDF, rank, maxit)
+    else:
+        rank_vector, varexpl_NMF = 0,0
+        
+    cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
     PopAlignDF = pd.DataFrame(data=geneFactors, columns=cmpCol)
     PopAlignDF["Drug"] = finalDF["Drug"].values
     PopAlignDF["Cell"] = np.tile(np.arange(1, numCells + 1), int(PopAlignDF.shape[0] / numCells))
@@ -156,9 +160,10 @@ def tensor_R2X(tensor, maxrank, maxit):
 
     for i in range(len(rank)):
         _, _, sse_error = geneNNMF(tensor, k=rank[i], verbose=0, maxiteration=maxit)
-        print(sse_error)
+        # print(sse_error)
         vTop = 0.0
-        print(np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
-        vTop += sse_error - np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy())))
-        varexpl[i] = vTop
+        # print(np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
+        vTop += abs(np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy())))-sse_error)
+        varexpl[i] = 1-(vTop/np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
+        print(varexpl[i])
     return rank, varexpl

@@ -23,32 +23,32 @@ def makeFigure():
     n_cluster = np.arange(4, 8)
 
     zflowTensor, _ = smallDF(cellperexp)
-    maxloglikDF = pd.DataFrame(columns=["Rank", "Cluster", "MaxLoglik"])
-    maxloglikDF = pd.DataFrame()
-    for i in range(len(ranknumb)):
-        row = pd.DataFrame()
-        row["Rank"] = ["Rank:" + str(ranknumb[i])]
-        for j in range(len(n_cluster)):
-            _, _, _, loglik, _, _ = minimize_func(zflowTensor, ranknumb[i], n_cluster[j])
-            row["Cluster:" + str(n_cluster[j])] = loglik
+    # maxloglikDF = pd.DataFrame(columns=["Rank", "Cluster", "MaxLoglik"])
+    # maxloglikDF = pd.DataFrame()
+    # for i in range(len(ranknumb)):
+    #     row = pd.DataFrame()
+    #     row["Rank"] = ["Rank:" + str(ranknumb[i])]
+    #     for j in range(len(n_cluster)):
+    #         _, _, _, loglik, _, _ = minimize_func(zflowTensor, ranknumb[i], n_cluster[j])
+    #         row["Cluster:" + str(n_cluster[j])] = loglik
 
-        maxloglikDF = pd.concat([maxloglikDF, row])
+    #     maxloglikDF = pd.concat([maxloglikDF, row])
 
-    maxloglikDF = maxloglikDF.set_index("Rank")
-    sns.heatmap(data=maxloglikDF, ax=ax[0])
+    # maxloglikDF = maxloglikDF.set_index("Rank")
+    # sns.heatmap(data=maxloglikDF, ax=ax[0])
 
-    maxloglikDFcv = pd.DataFrame()
-    for i in range(len(ranknumb)):
-        row = pd.DataFrame()
-        row["Rank"] = ["Rank:" + str(ranknumb[i])]
-        for j in range(len(n_cluster)):
-            loglik = tensorGMM_CV(zflowTensor, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
-            row["Cluster:" + str(n_cluster[j])] = loglik
+    # maxloglikDFcv = pd.DataFrame()
+    # for i in range(len(ranknumb)):
+    #     row = pd.DataFrame()
+    #     row["Rank"] = ["Rank:" + str(ranknumb[i])]
+    #     for j in range(len(n_cluster)):
+    #         loglik = tensorGMM_CV(zflowTensor, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
+    #         row["Cluster:" + str(n_cluster[j])] = loglik
 
-        maxloglikDFcv = pd.concat([maxloglikDFcv, row])
+    #     maxloglikDFcv = pd.concat([maxloglikDFcv, row])
 
-    maxloglikDFcv = maxloglikDFcv.set_index("Rank")
-    sns.heatmap(data=maxloglikDFcv, ax=ax[1])
-    ax[1].set(title="Cross Validation")
+    # maxloglikDFcv = maxloglikDFcv.set_index("Rank")
+    # sns.heatmap(data=maxloglikDFcv, ax=ax[1])
+    # ax[1].set(title="Cross Validation")
 
     return f
