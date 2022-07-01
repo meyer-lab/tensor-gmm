@@ -8,7 +8,6 @@ from .common import subplotLabel, getSetup
 from gmm.imports import smallDF
 from gmm.tensor import minimize_func, markerslist
 
-
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
