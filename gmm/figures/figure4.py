@@ -26,26 +26,25 @@ def makeFigure():
 
     maximizedNK, optCP, optPTfactors, _, _, _ = minimize_func(zflowTensor, rank=rank, n_cluster=n_cluster)
     ptMarkerPatterns = optPTfactors[1]
-
     
-    for i in range(3):
-        dff = pd.DataFrame(ptMarkerPatterns[:, :, i] @ ptMarkerPatterns[:, :, i].T, columns=markerslist, index=markerslist)
-        sns.heatmap(data=dff, ax=ax[i])
+    # for i in range(3):
+    #     dff = pd.DataFrame(ptMarkerPatterns[:, :, i] @ ptMarkerPatterns[:, :, i].T, columns=markerslist, index=markerslist)
+    #     sns.heatmap(data=dff, ax=ax[i])
 
-    ax[3].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
-    xlabel = "Cluster"
-    ylabel = "NK Value"
-    ax[3].set(xlabel=xlabel, ylabel=ylabel)
+    # ax[3].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
+    # xlabel = "Cluster"
+    # ylabel = "NK Value"
+    # ax[3].set(xlabel=xlabel, ylabel=ylabel)
 
-    # CP factors
-    cmpCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
-    commonDims = {"Time": zflowTensor.coords["Time"], "Dose": zflowTensor.coords["Dose"], "Ligand": zflowTensor.coords["Ligand"]}
-    clustArray = np.arange(1, n_cluster + 1)
-    coords = {"Cluster": clustArray, "Markers": markerslist, **commonDims}
-    maximizedFactors = [pd.DataFrame(optCP.factors[ii], columns=cmpCol, index=coords[key]) for ii, key in enumerate(coords)]
+    # # CP factors
+    # cmpCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
+    # commonDims = {"Time": zflowTensor.coords["Time"], "Dose": zflowTensor.coords["Dose"], "Ligand": zflowTensor.coords["Ligand"]}
+    # clustArray = np.arange(1, n_cluster + 1)
+    # coords = {"Cluster": clustArray, "Markers": markerslist, **commonDims}
+    # maximizedFactors = [pd.DataFrame(optCP.factors[ii], columns=cmpCol, index=coords[key]) for ii, key in enumerate(coords)]
 
-    for i in range(0, len(maximizedFactors)):
-        sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 4])
+    # for i in range(0, len(maximizedFactors)):
+    #     sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 4])
 
 
     return f

@@ -135,3 +135,19 @@ def test_cov_fit():
     assert math.isclose(cov[1][0], covR[1][0], abs_tol=0.2)
     assert math.isclose(cov[0][1], covR[0][1], abs_tol=0.2)
     assert math.isclose(cov[1][1], covR[1][1], abs_tol=0.3)
+    
+def test_loglikelihood():
+    """Testing to see if loglilihood is a number"""
+    x0 = vector_guess(meanShape, rank=3)
+    data_numpy = data_import.to_numpy()
+
+    nk, meanFact, covFac = vector_to_cp_pt(x0, 3, meanShape)
+    precBuild = covFactor_to_precisions(covFac)
+
+    ll = comparingGMMjax(data_numpy, nk, meanFact, precBuild)
+    ll2 = comparingGMMjax(data_numpy, nk, meanFact, precBuild, nk_rearrange=True)
+
+    assert np.isfinite(ll)
+    assert np.isfinite(ll2)
+
+    
