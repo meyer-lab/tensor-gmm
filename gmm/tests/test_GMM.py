@@ -139,7 +139,6 @@ def test_cov_fit():
 def test_loglikelihood_NK():
     """Testing to see if loglilihood is a number"""
     x0 = vector_guess(meanShape, rank=3)
-    meanShape = (6, data_import.shape[0], data_import.shape[2], data_import.shape[3], data_import.shape[4])
     NK, meanFact, tPrecision = vector_to_cp_pt(x0, rank=3, shape=meanShape)
  
     ll = comparingGMMjax_NK(data_import.to_numpy(), NK, meanFact, tPrecision)

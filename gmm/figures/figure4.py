@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 from .common import subplotLabel, getSetup
 from gmm.imports import smallDF
-from gmm.tensor import minimize_func, markerslist, vector_to_cp_pt, covFactor_to_precisions, vector_guess
+from gmm.tensor import minimize_func, markerslist
 
 
 def makeFigure():
