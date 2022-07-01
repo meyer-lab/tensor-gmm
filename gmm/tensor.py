@@ -99,7 +99,6 @@ def comparingGMMjax(X, nk, meanFact: list, tPrecision):
 def covFactor_to_precisions(covFac, returnCov=False):
     """Convert from the cholesky decomposition of the covariance matrix, to the precision matrix."""
     cov_chol = jnp.einsum("ax,bcx,dx,ex,fx->abcdef", *covFac)
-    print(cov_chol[0, :, :, 0, 0, 0])
     origShape = cov_chol.shape
     if returnCov:
         return cov_chol
@@ -193,5 +192,5 @@ def gen_points_GMM(optNK, optCP, optPT, time, dose, ligand):
 
     nk = optNK / np.sum(optNK)
     means = np.squeeze(means[:, :, time, dose, ligand])
-    samples = sample_GMM(nk, means, cholCov, 1000)
+    samples = sample_GMM(nk, means, cholCov, 400)
     return samples
