@@ -141,7 +141,6 @@ def test_loglikelihood_NK():
     x0 = vector_guess(meanShape, rank=3)
     NK, meanFact, tPrecision = vector_to_cp_pt(x0, rank=3, shape=meanShape)
  
-    ll = comparingGMMjax_NK(data_import.to_numpy(), NK, meanFact, tPrecision)
+    ll = comparingGMMjax_NK(data_import.to_numpy(), NK, meanFact, tPrecision.to_numpy())
     assert np.isfinite(ll)
-
     
