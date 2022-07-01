@@ -98,9 +98,9 @@ def comparingGMMjax(X, nk, meanFact: list, tPrecision):
 def comparingGMMjax_NK(X, nk, meanFact: list, tPrecision):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
     to determine the max log-likelihood"""
-    assert nk.ndim == 1
     n_markers = tPrecision.shape[1]
-    nkl = jnp.log(nk / jnp.sum(nk))
+    nk = jnp.sum(meanFact, axis=1) 
+    nkl = jnp.log(nk / jnp.sum(nk, axis=(1,2,3)))
     mp = jnp.einsum("iz,jz,kz,ijok->iok", *meanFact, tPrecision)
     Xp = jnp.einsum("jik,njok->inok", X, tPrecision)
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :], axis=2))

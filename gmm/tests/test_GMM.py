@@ -8,7 +8,7 @@ import math
 from ..imports import smallDF
 from ..GMM import cvGMM
 from ..scImport import import_thompson_drug, ThompsonDrugXA
-from ..tensor import vector_to_cp_pt, comparingGMM, comparingGMMjax, vector_guess, maxloglik_ptnnp, minimize_func, tensorGMM_CV, covFactor_to_precisions
+from ..tensor import vector_to_cp_pt, comparingGMM, comparingGMMjax, vector_guess, maxloglik_ptnnp, minimize_func, tensorGMM_CV, covFactor_to_precisions, comparingGMMjax_NK
 
 data_import, other_import = smallDF(10)
 meanShape = (6, data_import.shape[0], data_import.shape[2], data_import.shape[3], data_import.shape[4])
@@ -136,14 +136,13 @@ def test_cov_fit():
     assert math.isclose(cov[0][1], covR[0][1], abs_tol=0.2)
     assert math.isclose(cov[1][1], covR[1][1], abs_tol=0.3)
     
-def test_loglikelihood():
+def test_loglikelihood_NK():
     """Testing to see if loglilihood is a number"""
     x0 = vector_guess(meanShape, rank=3)
-    data = data_import.to_numpy()
-
-    ll = maxloglik_ptnnp(x0, meanShape, rank=3, X=data, nk_rearrange=False)
-    ll2 = maxloglik_ptnnp(x0, meanShape, rank=3, X=data,  nk_rearrange=True)
+    meanShape = (6, data_import.shape[0], data_import.shape[2], data_import.shape[3], data_import.shape[4])
+    NK, meanFact, tPrecision = vector_to_cp_pt(x0, rank=3, shape=meanShape)
+ 
+    ll = comparingGMMjax_NK(data_import.to_numpy(), NK, meanFact, tPrecision)
     assert np.isfinite(ll)
-    assert np.isfinite(ll2)
 
     
