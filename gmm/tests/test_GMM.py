@@ -139,8 +139,9 @@ def test_cov_fit():
 def test_loglikelihood_NK():
     """Testing to see if loglilihood is a number"""
     x0 = vector_guess(meanShape, rank=3)
-    nk, meanFact, tPrecision = vector_to_cp_pt(x0, rank=3, shape=meanShape)
+    nk, meanFact,covFac = vector_to_cp_pt(x0, rank=3, shape=meanShape)
+    precBuild = covFactor_to_precisions(covFac)
  
-    ll = comparingGMMjax_NK(data_import.to_numpy(), nk, meanFact, tPrecision)
+    ll = comparingGMMjax_NK(data_import.to_numpy(), nk, meanFact, precBuild)
     assert np.isfinite(ll)
     
