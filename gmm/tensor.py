@@ -142,7 +142,7 @@ def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X, nk_rearrange=False):
     if nk_rearrange == False:
         loglik = -comparingGMMjax(X, nk, meanFact, precBuild)
     else:
-        loglik = -comparingGMMjax_NK(X, nk, meanFact, precBuild, nk_rearrange=False)
+        loglik = -comparingGMMjax_NK(X, nk, meanFact, precBuild)
     
     return loglik
         
