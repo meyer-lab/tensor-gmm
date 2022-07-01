@@ -139,14 +139,10 @@ def test_cov_fit():
 def test_loglikelihood():
     """Testing to see if loglilihood is a number"""
     x0 = vector_guess(meanShape, rank=3)
-    data_numpy = data_import.to_numpy()
+    data = data_import.to_numpy()
 
-    nk, meanFact, covFac = vector_to_cp_pt(x0, 3, meanShape)
-    precBuild = covFactor_to_precisions(covFac)
-
-    ll = comparingGMMjax(data_numpy, nk, meanFact, precBuild)
-    ll2 = comparingGMMjax(data_numpy, nk, meanFact, precBuild, nk_rearrange=True)
-
+    ll = maxloglik_ptnnp(x0, meanShape, rank=3, X=data, nk_rearrange=False)
+    ll2 = maxloglik_ptnnp(x0, meanShape, rank=3, X=data,  nk_rearrange=True)
     assert np.isfinite(ll)
     assert np.isfinite(ll2)
 
