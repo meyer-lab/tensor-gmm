@@ -135,9 +135,8 @@ def covFactor_to_precisions(covFac, returnCov=False):
     return prec_chol
 
 
-def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X, nk_rearrange=False):
+def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
-    # Creating function that we want to minimize
     nk, meanFact, covFac = vector_to_cp_pt(facVector, rank, shape)
     prec_chol = covFactor_to_precisions(covFac)
 
@@ -200,13 +199,9 @@ def sample_GMM(weights_, means_, cholCovs, n_samples):
     n_samples_comp = np.random.multinomial(n_samples, weights_)
 
     X = np.vstack(
-        [
-            np.random.multivariate_normal(mean, cholCov @ cholCov.T, int(sample))
+        [np.random.multivariate_normal(mean, cholCov @ cholCov.T, int(sample))
             for (mean, cholCov, sample) in zip(
-                means_, cholCovs, n_samples_comp
-            )
-        ]
-    )
+                means_, cholCovs, n_samples_comp)])
     y = np.concatenate(
         [np.full(sample, j, dtype=int) for j, sample in enumerate(n_samples_comp)]
     )
