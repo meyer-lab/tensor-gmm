@@ -141,10 +141,10 @@ def test_loglikelihood_NK():
     cluster = 6
     rank = 3
     nkFact = np.random.rand(cluster, rank)
-    meanFact = np.random.rand(cluster, dataPA_import.shape[0], dataPA_import.shape[2])
+    meanFact1,meanFact2, meanFact3 = np.random.rand(cluster, rank), np.random.rand(dataPA_import.shape[0],rank), np.random.rand(dataPA_import.shape[2],rank)
+    meanFact = [meanFact1, meanFact2,  meanFact3]
     precBuild = np.random.rand(cluster, dataPA_import.shape[0], dataPA_import.shape[0], dataPA_import.shape[2])
-    
- 
+
     ll = comparingGMMjax_NK(dataPA_import.to_numpy(), nkFact, meanFact, precBuild)
     assert np.isfinite(ll)
     
