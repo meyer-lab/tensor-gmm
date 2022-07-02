@@ -138,11 +138,12 @@ def test_cov_fit():
     
 def test_loglikelihood_NK():
     """Testing to see if loglilihood is a number"""
-    PAShape = (6, dataPA_import.shape[0], dataPA_import.shape[2],dataPA_import.shape[3], dataPA_import.shape[4])
-    x0 = vector_guess(PAShape, rank=3)
-    _, meanFact,covFac = vector_to_cp_pt(x0, rank=3, shape=PAShape)
-    precBuild = covFactor_to_precisions(covFac)
-    nkFact = np.ones((6,3))
+    cluster = 6
+    rank = 3
+    nkFact = np.random.rand(cluster, rank)
+    meanFact = np.random.rand(cluster, dataPA_import.shape[0], dataPA_import.shape[2])
+    precBuild = np.random.rand(cluster, dataPA_import.shape[0], dataPA_import.shape[0], dataPA_import.shape[2])
+    
  
     ll = comparingGMMjax_NK(dataPA_import.to_numpy(), nkFact, meanFact, precBuild)
     assert np.isfinite(ll)
