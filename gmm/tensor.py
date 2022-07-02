@@ -95,12 +95,20 @@ def comparingGMMjax(X, nk, meanFact: list, tPrecision):
     loglik = jnp.sum(jsp.logsumexp(log_prob + log_det[jnp.newaxis, :, :, :, :] + nkl[jnp.newaxis, :, jnp.newaxis, jnp.newaxis, jnp.newaxis], axis=1))
     return loglik
 
+
 def comparingGMMjax_NK(X, nkFact, meanFact: list, tPrecision):
     """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
     to determine the max log-likelihood"""
     n_markers = tPrecision.shape[1]
-    nk =  np.dot(nkFact,meanFact[2].T)
-    nkl = jnp.log(nk / jnp.sum(nk, axis=0))
+    assert nkFact.ndim == 2
+    nk = nkFact @ meanFact[2].T
+    assert nk.ndim == 2
+    nkl = jnp.log(nk / jnp.sum(nk, axis=0, keepdims=True))
+    print(len(meanFact))
+    print(meanFact[0].shape)
+    print(meanFact[1].shape)
+    print(meanFact[2].shape)
+    print(tPrecision.shape)
     mp = jnp.einsum("iz,jz,kz,ijok->iok", *meanFact, tPrecision)
     Xp = jnp.einsum("jik,njok->inok", X, tPrecision)
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :], axis=2))
@@ -122,7 +130,6 @@ def comparingGMMjax_NK(X, nkFact, meanFact: list, tPrecision):
 def covFactor_to_precisions(covFac, returnCov=False):
     """Convert from the cholesky decomposition of the covariance matrix, to the precision matrix."""
     cov_chol = jnp.einsum("ax,bcx,dx,ex,fx->abcdef", *covFac)
-    print(cov_chol[0, :, :, 0, 0, 0])
     origShape = cov_chol.shape
     if returnCov:
         return cov_chol
