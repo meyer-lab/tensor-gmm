@@ -138,7 +138,7 @@ def test_cov_fit():
     
 def test_loglikelihood_NK():
     """Testing to see if loglilihood is a number"""
-    PAShape = (6, dataPA_import.shape[0], dataPA_import.shape[2])
+    PAShape = (6, dataPA_import.shape[0], dataPA_import.shape[2],dataPA_import.shape[3], dataPA_import.shape[4])
     x0 = vector_guess(PAShape, rank=3)
     _, meanFact,covFac = vector_to_cp_pt(x0, rank=3, shape=PAShape)
     precBuild = covFactor_to_precisions(covFac)
