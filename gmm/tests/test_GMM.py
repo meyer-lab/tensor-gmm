@@ -140,7 +140,7 @@ def test_loglikelihood_NK():
     """Testing to see if loglilihood is a number"""
     PAShape = (6, dataPA_import.shape[0], dataPA_import.shape[2])
     x0 = vector_guess(PAShape, rank=3)
-    _, meanFact,covFac = vector_to_cp_pt(x0, rank=3, shape=meanShape)
+    _, meanFact,covFac = vector_to_cp_pt(x0, rank=3, shape=PAShape)
     precBuild = covFactor_to_precisions(covFac)
     nkFact = np.random.rand(precBuild[0],3)
  
