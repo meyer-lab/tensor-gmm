@@ -142,7 +142,7 @@ def test_loglikelihood_NK():
     x0 = vector_guess(PAShape, rank=3)
     _, meanFact,covFac = vector_to_cp_pt(x0, rank=3, shape=PAShape)
     precBuild = covFactor_to_precisions(covFac)
-    nkFact = np.ones((precBuild[0],3))
+    nkFact = np.ones((precBuild.shape[0],3))
  
     ll = comparingGMMjax_NK(dataPA_import.to_numpy(), nkFact, meanFact, precBuild)
     assert np.isfinite(ll)
