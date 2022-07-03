@@ -104,11 +104,6 @@ def comparingGMMjax_NK(X, nkFact, meanFact: list, tPrecision):
     nk = nkFact @ meanFact[2].T
     assert nk.ndim == 2
     nkl = jnp.log(nk / jnp.sum(nk, axis=0, keepdims=True))
-    print(len(meanFact))
-    print(meanFact[0].shape)
-    print(meanFact[1].shape)
-    print(meanFact[2].shape)
-    print(tPrecision.shape)
     mp = jnp.einsum("iz,jz,kz,ijok->iok", *meanFact, tPrecision)
     Xp = jnp.einsum("jik,njok->inok", X, tPrecision)
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :], axis=2))

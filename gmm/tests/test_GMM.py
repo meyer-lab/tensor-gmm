@@ -140,11 +140,15 @@ def test_loglikelihood_NK():
     """Testing to see if loglilihood is a number"""
     cluster = 6
     rank = 3
-    nkFact = np.random.rand(cluster, rank)
-    meanFact1,meanFact2, meanFact3 = np.random.rand(cluster, rank), np.random.rand(dataPA_import.shape[0],rank), np.random.rand(dataPA_import.shape[2],rank)
-    meanFact = [meanFact1, meanFact2,  meanFact3]
-    precBuild = np.random.rand(cluster, dataPA_import.shape[0], dataPA_import.shape[0], dataPA_import.shape[2])
+    markers = 5
+    conditions = 4
 
-    ll = comparingGMMjax_NK(dataPA_import.to_numpy(), nkFact, meanFact, precBuild)
+    # Think data isn't organized correctly.
+    X = np.random.rand(markers, 100, conditions)
+    nkFact = np.random.rand(cluster, rank)
+    meanFact = [np.random.rand(cluster, rank), np.random.rand(markers, rank), np.random.rand(conditions, rank)]
+    precBuild = np.random.rand(cluster, markers, markers, conditions)
+
+    ll = comparingGMMjax_NK(X, nkFact, meanFact, precBuild)
     assert np.isfinite(ll)
     
