@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from .common import subplotLabel, getSetup
-from gmm.scImport import ThompsonDrugXA, gene_import
+from gmm.scImport import ThompsonDrugXA, gene_import, import_thompson_drug, mu_sigma_normalize, gene_filter
 from gmm.tensor import minimize_func, tensorGMM_CV
 import scipy.cluster.hierarchy as sch
 
@@ -15,7 +15,16 @@ def makeFigure():
     ax, f = getSetup((10, 8), (2, 3))
     
     ax[5].axis("off")
-    newdiv = gene_import(1.3)
+    # newdiv = gene_import(1.0)
+    # newdiv = gene_import(1.05)
+
+    genesDF, geneNames = import_thompson_drug()
+    filteredGeneDF, logmean, logstd = mu_sigma_normalize(genesDF)
+    print(logmean)
+    print(logstd)
+    ax[0].scatter(logmean,logstd)
+    # finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=1.0)
+    # print(finalDF)
     
 
     # newdiv.to_csv('finallydividx/xed.csv')

@@ -42,7 +42,6 @@ def import_thompson_drug():
     totalGenes.columns = genes # Attaching gene name to each column
     totalGenes["Drug"] = drugNames # Attaching drug name to each cell
     totalGenes = totalGenes.reset_index(drop=True)
-    # totalGenes = totalGenes.fillna(0)
     
     return totalGenes, genes
 
@@ -51,49 +50,57 @@ def mu_sigma_normalize(geneDF):
     drugNames = geneDF["Drug"].values
     filtDF = geneDF.drop("Drug", axis=1)
     
-    print(filtDF)
-    
     assert np.isnan(filtDF.to_numpy()).all() == False
     assert np.isfinite(filtDF.to_numpy()).all() == True
     
     inplaceDF = filtDF.where(filtDF >= 0, 1, inplace=False)
-    filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > .01]]
+    filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > .001]]
+    sumGenes = filteredGenes.sum(axis=0)
     
-    print(np.shape(filteredGenes))
-
-    sumGenes = filteredGenes.sum(axis=0).values
-    justDF = filteredGenes.to_numpy()
-    
-   
-    
-    assert np.isnan(justDF).all() == False
-    assert np.isfinite(justDF).all() == True
+    assert np.isnan(filteredGenes.to_numpy()).all() == False
+    assert np.isfinite(filteredGenes.to_numpy()).all() == True
     assert np.isnan(sumGenes).all() == False
     assert np.isfinite(sumGenes).all() == True
-    for i in range(len(sumGenes)):
-        if sumGenes[i] == 0:
-            print(i)
+    
+    indices_nonzero = []
+    for i in range(len(sumGenes.values)):
+        if sumGenes.values[i] != 0:
+            indices_nonzero = np.append(indices_nonzero,int(i))
+            
+    nonZeroGenes = filteredGenes.iloc[:,indices_nonzero]
+    genes = nonZeroGenes.columns.values
+    
+    sumGenes = sumGenes.iloc[indices_nonzero].to_numpy()
     assert sumGenes.all() != 0 
     
-    divDF = np.divide(justDF, sumGenes)
-    print(sumGenes)
-    print(divDF)
-    print(np.shape(justDF))
-    print(np.shape(divDF))
-    assert np.isnan(divDF).all() == False
-    assert np.isfinite(divDF).all() == True
+    # print(np.shape(nonZeroGenes))
+    # print(np.shape(sumGenes))
+    normG = np.divide(nonZeroGenes.to_numpy(), np.reshape(sumGenes,(1,-1)))
 
-    
-
-    # normG = filteredGenes.div(sumGenes, axis=1)
+    for i in range(len( sumGenes)):
+        print(sumGenes[i])
+        
+    assert np.isnan(normG).all() == False
+    assert np.isfinite(normG).all() == True
   
-    means = filteredGenes.mean(axis=0).to_numpy()
-    std = filteredGenes.std(axis=0).to_numpy()
+    print(np.shape(nonZeroGenes))
+    print(np.shape(sumGenes))
+    print(normG)
+    means = (10^6)*np.mean(normG, axis=0)
+    std = (10^6)*np.std(normG, axis=0)
+    
     cv = np.divide(std, means, out=np.zeros_like(std), where=means != 0)
     
-    filteredGenes["Drug"] = drugNames
+    # for i in range(len(means)):
+    #     print(means[i])
     
-    return filteredGenes, np.log10(means+1e-10), np.log10(cv+1e-10)
+
+    normDF = pd.DataFrame(data = normG, columns = genes) # Setting in a DF
+    normDF["Drug"] = drugNames # Attaching drug name to each cell
+    normDF = normDF.reset_index(drop=True)
+
+    
+    return normDF, np.log10(means+1e-10), np.log10(cv+1e-10)
 
 
 def gene_filter(geneDF, mean, std, offset_value=1.0):
