@@ -59,19 +59,19 @@ def mu_sigma_normalize(geneDF):
     sumGenes = filteredGenes.sum(axis=0).values
     justDF = filteredGenes.to_numpy()
     
-    assert np.isnan(justDF).all() == False
-    assert np.isfinite(justDF).all() == True
-    assert np.isnan(sumGenes).all() == False
-    assert np.isfinite(sumGenes).all() == True
-    assert sumGenes.all() == 0 
+    assert np.isnan(justDF).any() == False
+    assert np.isfinite(justDF).any() == True
+    assert np.isnan(sumGenes).any() == False
+    assert np.isfinite(sumGenes).any() == True
+    assert sumGenes.any() == 0 
     
     divDF = np.divide(justDF, sumGenes)
     print(sumGenes)
     print(divDF)
     print(np.shape(justDF))
     print(np.shape(divDF))
-    assert np.isnan(divDF).all() == False
-    assert np.isfinite(divDF).all() == True
+    assert np.isnan(divDF).any() == False
+    assert np.isfinite(divDF).any() == True
 
     
 
