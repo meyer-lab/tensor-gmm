@@ -70,7 +70,10 @@ def mu_sigma_normalize(geneDF):
     assert np.isfinite(justDF).all() == True
     assert np.isnan(sumGenes).all() == False
     assert np.isfinite(sumGenes).all() == True
-    assert sumGenes.any() == 0 
+    for i in range(len(sumGenes)):
+        if sumGenes[i] == 0:
+            print(i)
+    assert sumGenes.all() != 0 
     
     divDF = np.divide(justDF, sumGenes)
     print(sumGenes)
