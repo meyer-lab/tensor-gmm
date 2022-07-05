@@ -40,10 +40,11 @@ def import_thompson_drug():
         totalGenes = pd.concat([totalGenes, pd.DataFrame(data=geneExpression)])  # Setting in a DF
 
     totalGenes.columns = genes # Attaching gene name to each column
-    # totalGenes= totalGenes.fillna(0)
     totalGenes["Drug"] = drugNames # Attaching drug name to each cell
+    totalGenes = totalGenes.reset_index(drop=True)
+    # totalGenes = totalGenes.fillna(0)
     
-    return totalGenes.reset_index(drop=True), genes
+    return totalGenes, genes
 
 def mu_sigma_normalize(geneDF):
     """Calculates the mu and sigma for every gene and returns means, sigmas, and dataframe filtered for genes expressed in > 0.1% of cells"""
@@ -52,11 +53,11 @@ def mu_sigma_normalize(geneDF):
     
     print(filtDF)
     
-    assert np.isnan(filtDF.to_numpy()).any() == True
-    assert np.isfinite(filtDF.to_numpy()).any() == False
+    assert np.isnan(filtDF.to_numpy()).all() == False
+    assert np.isfinite(filtDF.to_numpy()).all() == True
     
     inplaceDF = filtDF.where(filtDF >= 0, 1, inplace=False)
-    filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > .001]]
+    filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > .01]]
     
     print(np.shape(filteredGenes))
 
@@ -65,10 +66,10 @@ def mu_sigma_normalize(geneDF):
     
    
     
-    assert np.isnan(justDF).any() == True
-    assert np.isfinite(justDF).any() == False
-    assert np.isnan(sumGenes).any() == True
-    assert np.isfinite(sumGenes).any() == False
+    assert np.isnan(justDF).all() == False
+    assert np.isfinite(justDF).all() == True
+    assert np.isnan(sumGenes).all() == False
+    assert np.isfinite(sumGenes).all() == True
     assert sumGenes.any() == 0 
     
     divDF = np.divide(justDF, sumGenes)
@@ -76,8 +77,8 @@ def mu_sigma_normalize(geneDF):
     print(divDF)
     print(np.shape(justDF))
     print(np.shape(divDF))
-    assert np.isnan(divDF).any() == True
-    assert np.isfinite(divDF).any() == False
+    assert np.isnan(divDF).all() == False
+    assert np.isfinite(divDF).all() == True
 
     
 
@@ -125,9 +126,9 @@ def gene_import(offset):
 
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int, r2x=False):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
-    # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
+    finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
     # finalDF = pd.read_csv("final.csv")
-    finalDF = pd.read_csv('newdiv.csv')
+    # finalDF = pd.read_csv('newdiv.csv')
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
