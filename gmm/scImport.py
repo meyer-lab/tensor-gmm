@@ -50,19 +50,25 @@ def mu_sigma_normalize(geneDF):
     drugNames = geneDF["Drug"].values
     filtDF = geneDF.drop("Drug", axis=1)
     
-    assert np.isnan(filtDF.to_numpy()).all() == False
-    assert np.isfinite(filtDF.to_numpy()).all() == True
+    print(filtDF)
+    
+    assert np.isnan(filtDF.to_numpy()).any() == True
+    assert np.isfinite(filtDF.to_numpy()).any() == False
     
     inplaceDF = filtDF.where(filtDF >= 0, 1, inplace=False)
     filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > .001]]
+    
+    print(np.shape(filteredGenes))
 
     sumGenes = filteredGenes.sum(axis=0).values
     justDF = filteredGenes.to_numpy()
     
-    assert np.isnan(justDF).any() == False
-    assert np.isfinite(justDF).any() == True
-    assert np.isnan(sumGenes).any() == False
-    assert np.isfinite(sumGenes).any() == True
+   
+    
+    assert np.isnan(justDF).any() == True
+    assert np.isfinite(justDF).any() == False
+    assert np.isnan(sumGenes).any() == True
+    assert np.isfinite(sumGenes).any() == False
     assert sumGenes.any() == 0 
     
     divDF = np.divide(justDF, sumGenes)
@@ -70,8 +76,8 @@ def mu_sigma_normalize(geneDF):
     print(divDF)
     print(np.shape(justDF))
     print(np.shape(divDF))
-    assert np.isnan(divDF).any() == False
-    assert np.isfinite(divDF).any() == True
+    assert np.isnan(divDF).any() == True
+    assert np.isfinite(divDF).any() == False
 
     
 
