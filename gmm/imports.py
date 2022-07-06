@@ -10,7 +10,7 @@ def smallDF(numCells: int, hyperlog=False):
     Zscores all markers per experiment but pSTAT5 normalized over all experiments
     Outputs amount of experiments and cell types as an Xarray"""
     # numCells = Amount of cells per experiment
-    if hyperlog == False:
+    if hyperlog is False:
         flowArrow = pq.read_table("/opt/andrew/FlowDataGMM.pq")
     else: 
         flowArrow = pq.read_table("/opt/andrew/FlowDataGMM_hlog.pq")
