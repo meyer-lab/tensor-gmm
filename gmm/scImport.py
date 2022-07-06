@@ -123,7 +123,7 @@ def gene_import(offset=1.0,filter=False):
     return filteredGeneDF
 
 
-def ThompsonDrugXA(numCells: int, rank: int, maxit: int, r2x=False):
+def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
     finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
     # finalDF = pd.read_csv('FilteredDrugs_NoOffset.csv')
@@ -131,11 +131,8 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int, r2x=False):
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
     _, geneFactors, _ = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
-    if r2x == True:
-        rank_vector, varexpl_NMF = tensor_R2X(finalDF, rank, maxit)
-    else:
-        rank_vector, varexpl_NMF = 0,0
-        
+    rank_vector, varexpl_NMF = tensor_R2X(finalDF, rank, maxit)
+    
     cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
     PopAlignDF = pd.DataFrame(data=geneFactors, columns=cmpCol)
     PopAlignDF["Drug"] = finalDF["Drug"].values
@@ -158,13 +155,11 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int, r2x=False):
 
 def tensor_R2X(tensor, maxrank, maxit):
     """ Calculates the R2X value even where NaN values are present"""
-    rank = np.arange(1,maxrank)
-    varexpl = np.empty(len(rank))
+    rank = np.arange(1,maxrank+1)
+    sse_error = np.empty(len(rank))
     tensor_nodrug = tensor.drop("Drug", axis=1)
 
     for i in range(len(rank)):
-        _, _, sse_error = geneNNMF(tensor, k=rank[i], verbose=0, maxiteration=maxit)
-        # print(sse_error)
-        # print(np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
-        varexpl[i] = 1-(sse_error/np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
-    return rank, varexpl
+        _, _, sse_error[i] = geneNNMF(tensor, k=rank[i], verbose=0, maxiteration=maxit)
+        
+    return rank, sse_error

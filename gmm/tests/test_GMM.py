@@ -12,7 +12,7 @@ from ..tensor import vector_to_cp_pt, comparingGMM, comparingGMMjax, vector_gues
 
 data_import, other_import = smallDF(10)
 meanShape = (6, data_import.shape[0], data_import.shape[2], data_import.shape[3], data_import.shape[4])
-dataPA_import = ThompsonDrugXA(numCells=10, rank=10, maxit=20)
+dataPA_import, _, _ = ThompsonDrugXA(numCells=10, rank=10, maxit=20)
 
 
 def test_cvGMM():

@@ -17,15 +17,16 @@ def makeFigure():
     ax[5].axis("off")
     
     num = 290
-    fac = 10
-    drugXA, fac_vector, varexpl_NMF = ThompsonDrugXA(numCells=num, rank=fac, maxit=2000, r2x=True)
+    fac = 12
+    drugXA, fac_vector, varexpl_NMF = ThompsonDrugXA(numCells=num, rank=fac, maxit=10)
     ax[0].plot(fac_vector, varexpl_NMF, "r")
     xlabel = "Number of Components"
     ylabel = "R2X"
     ax[0].set(xlabel=xlabel, ylabel=ylabel)
 
-    rank = 6
-    clust = 4
+
+    rank = 3
+    clust = 3
     maximizedNK, optCP, _, x, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust)
     print("LogLik", x)
 
@@ -60,8 +61,8 @@ def makeFigure():
 
 
     maxloglikDFcv = maxloglikDFcv.set_index("Rank")
-    sns.heatmap(data=maxloglikDFcv, ax=ax[5])
-    ax[5].set(title="Cross Validation")
+    sns.heatmap(data=maxloglikDFcv, ax=ax[6])
+    ax[6].set(title="Cross Validation")
 
 
 
