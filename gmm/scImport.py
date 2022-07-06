@@ -72,28 +72,17 @@ def mu_sigma_normalize(geneDF):
     
     sumGenes = sumGenes.iloc[indices_nonzero].to_numpy()
     assert sumGenes.all() != 0 
-    
-    # print(np.shape(nonZeroGenes))
-    # print(np.shape(sumGenes))
-    normG = np.divide(nonZeroGenes.to_numpy(), np.reshape(sumGenes,(1,-1)))
 
-    for i in range(len( sumGenes)):
-        print(sumGenes[i])
+    normG = np.divide(nonZeroGenes.to_numpy(), sumGenes)
         
     assert np.isnan(normG).all() == False
     assert np.isfinite(normG).all() == True
   
-    print(np.shape(nonZeroGenes))
-    print(np.shape(sumGenes))
-    print(normG)
-    means = (10^6)*np.mean(normG, axis=0)
-    std = (10^6)*np.std(normG, axis=0)
+
+    means = np.mean(normG, axis=0)
+    std = np.std(normG, axis=0)
     
     cv = np.divide(std, means, out=np.zeros_like(std), where=means != 0)
-    
-    # for i in range(len(means)):
-    #     print(means[i])
-    
 
     normDF = pd.DataFrame(data = normG, columns = genes) # Setting in a DF
     normDF["Drug"] = drugNames # Attaching drug name to each cell
@@ -125,23 +114,21 @@ def geneNNMF(X, k=14, verbose=0, maxiteration=2000):
     return model.components_, W, sse_error
 
 
-def gene_import(offset):
+def gene_import(offset=1.0,filter=False):
     """Imports gene data from PopAlign and perfroms gene filtering process"""
     genesDF, geneNames = import_thompson_drug()
     filteredGeneDF, logmean, logstd = mu_sigma_normalize(genesDF)
-    finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
-    print(finalDF)
-    return finalDF
+    if filter == True:
+        filteredGeneDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
+    return filteredGeneDF
 
 
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int, r2x=False):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
     finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
-    # finalDF = pd.read_csv("final.csv")
-    # finalDF = pd.read_csv('newdiv.csv')
+    # finalDF = pd.read_csv('FilteredDrugs_NoOffset.csv')
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
-
 
     _, geneFactors, _ = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
     if r2x == True:
@@ -178,9 +165,6 @@ def tensor_R2X(tensor, maxrank, maxit):
     for i in range(len(rank)):
         _, _, sse_error = geneNNMF(tensor, k=rank[i], verbose=0, maxiteration=maxit)
         # print(sse_error)
-        vTop = 0.0
         # print(np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
-        vTop += abs(np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy())))-sse_error)
-        varexpl[i] = 1-(vTop/np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
-        print(varexpl[i])
+        varexpl[i] = 1-(sse_error/np.sum(np.square(np.nan_to_num(tensor_nodrug.to_numpy()))))
     return rank, varexpl

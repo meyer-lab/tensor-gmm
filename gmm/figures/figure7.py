@@ -12,74 +12,56 @@ import scipy.cluster.hierarchy as sch
 def makeFigure():
     """Get a list of the axis objects and create a figure."""
     # Get list of axis objects
-    ax, f = getSetup((10, 8), (2, 3))
+    ax, f = getSetup((10, 8), (3, 3))
     
     ax[5].axis("off")
-    # newdiv = gene_import(1.0)
-    # newdiv = gene_import(1.05)
-
-    genesDF, geneNames = import_thompson_drug()
-    filteredGeneDF, logmean, logstd = mu_sigma_normalize(genesDF)
-    print(logmean)
-    print(logstd)
-    ax[0].scatter(logmean,logstd)
-    # finalDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=1.0)
-    # print(finalDF)
     
+    num = 290
+    fac = 10
+    drugXA, fac_vector, varexpl_NMF = ThompsonDrugXA(numCells=num, rank=fac, maxit=2000, r2x=True)
+    ax[0].plot(fac_vector, varexpl_NMF, "r")
+    xlabel = "Number of Components"
+    ylabel = "R2X"
+    ax[0].set(xlabel=xlabel, ylabel=ylabel)
 
-    # newdiv.to_csv('finallydividx/xed.csv')
-    
-    
-    # num = 290
+    rank = 6
+    clust = 4
+    maximizedNK, optCP, _, x, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust)
+    print("LogLik", x)
 
-    # fac = 20
-    # drugXA, fac_vector, varexpl_NMF = ThompsonDrugXA(numCells=num, rank=fac, maxit=2000)
-    # ax[0].plot(fac_vector, varexpl_NMF, "r")
-    # xlabel = "Number of Components"
-    # ylabel = "R2X"
-    # ax[0].set(xlabel=xlabel, ylabel=ylabel)
+    ax[1].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
+    xlabel = "Cluster"
+    ylabel = "NK Value"
+    ax[1].set(xlabel=xlabel, ylabel=ylabel)
 
+    cmpCol = [f"Fac. {i}" for i in np.arange(1, fac + 1)]
+    rankCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
+    clustArray = [f"Clust. {i}" for i in np.arange(1, clust + 1)]
+    coords = {"Cluster": clustArray, "Factor": cmpCol, "Drug": drugXA.coords["Drug"]}
+    maximizedFactors = [pd.DataFrame(optCP.factors[ii], columns=rankCol, index=coords[key]) for ii, key in enumerate(coords)]
+    maximizedFactors[2] = reorder_table(maximizedFactors[2])
 
-    # rank = 6
-    # clust = 4
-    # maximizedNK, optCP, _, x, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust)
-    # print("LogLik", x)
+    for i in range(0, len(maximizedFactors)):
+        sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 2])
 
-    # ax[1].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
-    # xlabel = "Cluster"
-    # ylabel = "NK Value"
-    # ax[1].set(xlabel=xlabel, ylabel=ylabel)
+    ranknumb = np.arange(2, 6)
+    n_cluster = np.arange(2, 6)
 
-    # cmpCol = [f"Fac. {i}" for i in np.arange(1, fac + 1)]
-    # rankCol = [f"Cmp. {i}" for i in np.arange(1, rank + 1)]
-    # clustArray = [f"Clust. {i}" for i in np.arange(1, clust + 1)]
-    # coords = {"Cluster": clustArray, "Factor": cmpCol, "Drug": drugXA.coords["Drug"]}
-    # maximizedFactors = [pd.DataFrame(optCP.factors[ii], columns=rankCol, index=coords[key]) for ii, key in enumerate(coords)]
-    # maximizedFactors[2] = reorder_table(maximizedFactors[2])
+    maxloglikDFcv = pd.DataFrame()
+    for i in range(len(ranknumb)):
+        row = pd.DataFrame()
+        row["Rank"] = ["Rank:" + str(ranknumb[i])]
+        for j in range(len(n_cluster)):
+            loglik = tensorGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
+            print("LogLik", loglik)
+            row["Cluster:" + str(n_cluster[j])] = loglik
 
-    # for i in range(0, len(maximizedFactors)):
-    #     # sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 2], cmap="Greens")
-    #     sns.heatmap(data=maximizedFactors[i], vmin=0, ax=ax[i + 2])
-
-
-    # ranknumb = np.arange(2, 6)
-    # n_cluster = np.arange(2, 6)
-
-    # maxloglikDFcv = pd.DataFrame()
-    # for i in range(len(ranknumb)):
-    #     row = pd.DataFrame()
-    #     row["Rank"] = ["Rank:" + str(ranknumb[i])]
-    #     for j in range(len(n_cluster)):
-    #         loglik = tensorGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
-    #         print("LogLik", loglik)
-    #         row["Cluster:" + str(n_cluster[j])] = loglik
-
-    #     maxloglikDFcv = pd.concat([maxloglikDFcv, row])
+        maxloglikDFcv = pd.concat([maxloglikDFcv, row])
 
 
-    # maxloglikDFcv = maxloglikDFcv.set_index("Rank")
-    # sns.heatmap(data=maxloglikDFcv, ax=ax[4])
-    # ax[4].set(title="Cross Validation")
+    maxloglikDFcv = maxloglikDFcv.set_index("Rank")
+    sns.heatmap(data=maxloglikDFcv, ax=ax[5])
+    ax[5].set(title="Cross Validation")
 
 
 
