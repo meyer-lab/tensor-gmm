@@ -41,7 +41,7 @@ def vector_guess(shape: tuple, rank: int):
     """Predetermines total vector that will be maximized for NK, factors and core"""
     factortotal = np.sum(shape) * rank + int(shape[1] * (shape[1] - 1) / 2 + shape[1]) * rank + shape[0]
     vector = np.random.normal(loc=-1.0, size=factortotal)
-    vector[0: shape[0]] = 1
+    vector[0 : shape[0]] = 1
     return vector
 
 
@@ -83,7 +83,7 @@ def comparingGMMjax(X, nk, meanFact: list, tPrecision):
     log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :, :, :], axis=2))
     log_prob = -0.5 * (n_markers * jnp.log(2 * jnp.pi) + log_prob)
 
-    # Need to check here for the sum 
+    # Need to check here for the sum
     # The determinant of the precision matrix from the Cholesky decomposition
     # corresponds to the negative half of the determinant of the full precision matrix.
     # In short: det(precision_chol) = - det(precision) / 2
@@ -139,11 +139,11 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
 
     def callback(xk, state):
         gNorm = np.linalg.norm(state.grad)
-        tq.set_postfix(val='{:.2e}'.format(state.fun), g='{:.2e}'.format(gNorm), refresh=False)
+        tq.set_postfix(val="{:.2e}".format(state.fun), g="{:.2e}".format(gNorm), refresh=False)
         tq.update(1)
 
     opts = {"maxiter": maxiter, "disp": False}
-    bounds = ((np.log(1e-1), np.log(1e1)), ) * n_cluster + ((np.log(1e-6), np.log(100.0)), ) * (len(x0) - n_cluster)
+    bounds = ((np.log(1e-1), np.log(1e1)),) * n_cluster + ((np.log(1e-6), np.log(100.0)),) * (len(x0) - n_cluster)
     opt = minimize(func, x0, jac=True, hessp=hvpj, callback=callback, method="trust-constr", bounds=bounds, args=args, options=opts)
     tq.close()
 
@@ -178,13 +178,8 @@ def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=200):
 def sample_GMM(weights_, means_, cholCovs, n_samples):
     n_samples_comp = np.random.multinomial(n_samples, weights_)
 
-    X = np.vstack(
-        [np.random.multivariate_normal(mean, cholCov @ cholCov.T, int(sample))
-            for (mean, cholCov, sample) in zip(
-                means_, cholCovs, n_samples_comp)])
-    y = np.concatenate(
-        [np.full(sample, j, dtype=int) for j, sample in enumerate(n_samples_comp)]
-    )
+    X = np.vstack([np.random.multivariate_normal(mean, cholCov @ cholCov.T, int(sample)) for (mean, cholCov, sample) in zip(means_, cholCovs, n_samples_comp)])
+    y = np.concatenate([np.full(sample, j, dtype=int) for j, sample in enumerate(n_samples_comp)])
     return X, y
 
 
