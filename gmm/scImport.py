@@ -39,10 +39,12 @@ def import_thompson_drug():
     totalGenes.columns = genes # Attaching gene name to each column
     totalGenes["Drug"] = drugNames # Attaching drug name to each cell
     totalGenes = totalGenes.reset_index(drop=True)
+    totalGenes = totalGenes.loc[:, ~totalGenes.columns.duplicated()].copy()
+
     
     return totalGenes, genes
 
-def mu_sigma_normalize(geneDF):
+def mu_sigma_normalize(geneDF,scalingfactor=1000):
     """Calculates the mu and sigma for every gene and returns means, sigmas, and dataframe filtered for genes expressed in > 0.1% of cells"""
     drugNames = geneDF["Drug"].values
     filtDF = geneDF.drop("Drug", axis=1)
@@ -75,13 +77,14 @@ def mu_sigma_normalize(geneDF):
     assert np.isnan(normG).all() == False
     assert np.isfinite(normG).all() == True
   
+    logG = np.log10(scalingfactor(normG)+1)
 
-    means = np.mean(normG, axis=0)
-    std = np.std(normG, axis=0)
+    means = np.mean(logG, axis=0)
+    std = np.std(logG, axis=0)
     
     cv = np.divide(std, means, out=np.zeros_like(std), where=means != 0)
 
-    normDF = pd.DataFrame(data = normG, columns = genes) # Setting in a DF
+    normDF = pd.DataFrame(data = logG, columns = genes) # Setting in a DF
     normDF["Drug"] = drugNames # Attaching drug name to each cell
     normDF = normDF.reset_index(drop=True)
 
@@ -114,7 +117,7 @@ def geneNNMF(X, k=14, verbose=0, maxiteration=2000):
 def gene_import(offset=1.0,filter=False):
     """Imports gene data from PopAlign and perfroms gene filtering process"""
     genesDF, geneNames = import_thompson_drug()
-    filteredGeneDF, logmean, logstd = mu_sigma_normalize(genesDF)
+    filteredGeneDF, logmean, logstd = mu_sigma_normalize(genesDF,scalingfactor=1000)
     if filter == True:
         filteredGeneDF, filtered_index = gene_filter(filteredGeneDF, logmean, logstd, offset_value=offset)
     return filteredGeneDF
@@ -122,8 +125,8 @@ def gene_import(offset=1.0,filter=False):
 
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
-    # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
-    finalDF = pd.read_csv('FilteredDrugs_NoOffset.csv')
+    finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
+    # finalDF = pd.read_csv('FilteredDrugs_NoOffset.csv')
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
