@@ -8,7 +8,7 @@ import math
 from ..imports import smallDF
 from ..GMM import cvGMM
 from ..scImport import import_thompson_drug, ThompsonDrugXA
-from ..tensor import vector_to_cp_pt, comparingGMM, comparingGMMjax, vector_guess, maxloglik_ptnnp, minimize_func, tensorGMM_CV, covFactor_to_precisions
+from ..tensor import vector_to_cp_pt, comparingGMM, comparingGMMjax, vector_guess, maxloglik_ptnnp, minimize_func, tensorGMM_CV, covFactor_to_precisions, comparingGMMjax_NK
 
 data_import, other_import = smallDF(10)
 meanShape = (6, data_import.shape[0], data_import.shape[2], data_import.shape[3], data_import.shape[4])
@@ -98,7 +98,7 @@ def test_independence():
 
 def test_fit():
     """Test that fitting can run fine."""
-    nk, fac, ptfac, ll, _, _ = minimize_func(data_import, 3, 10, maxiter=20)
+    nk, fac, ptfac, ll, _, _ = minimize_func(data_import, 3, 10, maxiter=20, verbose=False)
     loglik = tensorGMM_CV(data_import, numFolds=3, numClusters=3, numRank=2, maxiter=20)
     assert isinstance(loglik, float)
     assert isinstance(ll, float)
@@ -106,7 +106,7 @@ def test_fit():
 
 def test_import_PopAlign():
     """Stub test."""
-    dataPA_two = ThompsonDrugXA(numCells=20, rank=20, maxit=20)
+    dataPA_two, _, _ = ThompsonDrugXA(numCells=20, rank=20, maxit=20)
     assert 2 * dataPA_import.shape[0] == dataPA_two.shape[0]
     assert 2 * dataPA_import.shape[1] == dataPA_two.shape[1]
     assert dataPA_import.shape[2] == dataPA_two.shape[2]
@@ -126,7 +126,7 @@ def test_cov_fit():
     cov = [[0.5, 0], [0, 2]]
     samples = np.transpose(np.random.multivariate_normal([3, 1], cov, 1000)).reshape((2, 1000, 1, 1, 1))
     samples = xa.DataArray(samples, dims=("Dim", "Point", "Throwaway 1", "Throwaway 2", "Throwaway 3"), coords={"Dim": ["X", "Y"], "Point": np.arange(0, 1000), "Throwaway 1": [1], "Throwaway 2": [1], "Throwaway 3": [1]})
-    _, _, optPT, _, _, _ = minimize_func(samples, rank=6, n_cluster=1, maxiter=2000)
+    _, _, optPT, _, _, _ = minimize_func(samples, rank=6, n_cluster=1, maxiter=2000, verbose=False)
     cholCov = covFactor_to_precisions(optPT, returnCov=True)
     cholCov = np.squeeze(cholCov[:, :, :, 0, 0, 0])
     covR = cholCov @ cholCov.T
@@ -135,3 +135,20 @@ def test_cov_fit():
     assert math.isclose(cov[1][0], covR[1][0], abs_tol=0.2)
     assert math.isclose(cov[0][1], covR[0][1], abs_tol=0.2)
     assert math.isclose(cov[1][1], covR[1][1], abs_tol=0.3)
+    
+def test_loglikelihood_NK():
+    """Testing to see if loglilihood is a number"""
+    cluster = 6
+    rank = 3
+    markers = 5
+    conditions = 4
+
+    # Think data isn't organized correctly.
+    X = np.random.rand(markers, 100, conditions)
+    nkFact = np.random.rand(cluster, rank)
+    meanFact = [np.random.rand(cluster, rank), np.random.rand(markers, rank), np.random.rand(conditions, rank)]
+    precBuild = np.random.rand(cluster, markers, markers, conditions)
+
+    ll = comparingGMMjax_NK(X, nkFact, meanFact, precBuild)
+    assert np.isfinite(ll)
+    

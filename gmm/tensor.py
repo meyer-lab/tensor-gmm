@@ -4,7 +4,7 @@ import jax.scipy.special as jsp
 import tensorly as tl
 from tqdm import tqdm
 import xarray as xa
-from copy import copy
+from copy import deepcopy
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import KFold
 from jax import value_and_grad, jit, grad
@@ -29,11 +29,11 @@ def vector_to_cp_pt(vectorIn, rank: int, shape: tuple):
     factors = [jnp.reshape(vectorIn[nN[ii] : nN[ii + 1]], (shape[ii], rank)) for ii in range(len(shape))]
     # Rebuidling factors and ranks
 
-    precSym = jnp.zeros((shape[1], shape[1], rank))
+    precisions = jnp.zeros((shape[1], shape[1], rank))
     ai, bi = jnp.tril_indices(shape[1])
     pVec = vectorIn[nN[-1] : :].reshape(-1, rank)
-    precSym = precSym.at[ai, bi, :].set(pVec)
-    factors_pt = [factors[0], precSym, factors[2], factors[3], factors[4]]
+    precisions = precisions.at[ai, bi, :].set(pVec)
+    factors_pt = [factors[0], precisions, factors[2], factors[3], factors[4]]
     return rebuildnk, factors, factors_pt
 
 
@@ -96,35 +96,61 @@ def comparingGMMjax(X, nk, meanFact: list, tPrecision):
     return loglik
 
 
+def comparingGMMjax_NK(X, nkFact, meanFact: list, tPrecision):
+    """Obtains the GMM means, convariances and NK values along with zflowDF mean marker values
+    to determine the max log-likelihood"""
+    n_markers = tPrecision.shape[1]
+    assert nkFact.ndim == 2
+    nk = nkFact @ meanFact[2].T
+    assert nk.ndim == 2
+    nkl = jnp.log(nk / jnp.sum(nk, axis=0, keepdims=True))
+    mp = jnp.einsum("iz,jz,kz,ijok->iok", *meanFact, tPrecision)
+    Xp = jnp.einsum("jik,njok->inok", X, tPrecision)
+    log_prob = jnp.square(jnp.linalg.norm(Xp - mp[jnp.newaxis, :, :, :], axis=2))
+    log_prob = -0.5 * (n_markers * jnp.log(2 * jnp.pi) + log_prob)
+
+    # Need to check here for the sum 
+    # The determinant of the precision matrix from the Cholesky decomposition
+    # corresponds to the negative half of the determinant of the full precision matrix.
+    # In short: det(precision_chol) = - det(precision) / 2
+    ppp = jnp.diagonal(tPrecision, axis1=1, axis2=2)
+    log_det = jnp.sum(jnp.log(ppp), axis=-1)
+
+    # Since we are using the precision of the Cholesky decomposition,
+    # `- 0.5 * log_det_precision` becomes `+ log_det_precision_chol`
+    loglik = jnp.sum(jsp.logsumexp(log_prob + log_det[jnp.newaxis, :, :] + nkl[jnp.newaxis, :, :], axis=1))
+    return loglik
+
+
 def covFactor_to_precisions(covFac, returnCov=False):
     """Convert from the cholesky decomposition of the covariance matrix, to the precision matrix."""
-    covBuilt = jnp.einsum("ax,bcx,dx,ex,fx->abcdef", *covFac)
-    origShape = covBuilt.shape
+    cov_chol = jnp.einsum("ax,bcx,dx,ex,fx->abcdef", *covFac)
+    origShape = cov_chol.shape
     if returnCov:
-        return covBuilt
-    covBuilt = jnp.moveaxis(covBuilt, (1, 2), (4, 5))
-    Y = jnp.broadcast_to(jnp.eye(covBuilt.shape[4])[jnp.newaxis, jnp.newaxis, jnp.newaxis, jnp.newaxis, :, :], covBuilt.shape)
-    assert covBuilt.shape == Y.shape
-    precBuild = triangular_solve(covBuilt, Y, lower=True)
-    precBuild = jnp.moveaxis(precBuild, (4, 5), (1, 2))
-    assert origShape == precBuild.shape
-    return precBuild
+        return cov_chol
+    cov_chol = jnp.moveaxis(cov_chol, (1, 2), (4, 5))
+    Y = jnp.broadcast_to(jnp.eye(cov_chol.shape[4])[jnp.newaxis, jnp.newaxis, jnp.newaxis, jnp.newaxis, :, :], cov_chol.shape)
+    assert cov_chol.shape == Y.shape
+    prec_chol = triangular_solve(cov_chol, Y, lower=True)
+    prec_chol = jnp.moveaxis(prec_chol, (4, 5), (1, 2))
+    assert origShape == prec_chol.shape
+    return prec_chol
 
 
 def maxloglik_ptnnp(facVector, shape: tuple, rank: int, X):
     """Function used to rebuild tMeans from factors and maximize log-likelihood"""
     nk, meanFact, covFac = vector_to_cp_pt(facVector, rank, shape)
-    precBuild = covFactor_to_precisions(covFac)
+    prec_chol = covFactor_to_precisions(covFac)
 
     # Creating function that we want to minimize
-    return -comparingGMMjax(X, nk, meanFact, precBuild) / X.shape[1]
+    return -comparingGMMjax(X, nk, meanFact, prec_chol) / X.shape[1]
 
 
-def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=200, x0=None):
+def minimize_func(X: xa.DataArray, rank: int, n_cluster: int, maxiter=400, verbose=True, x0=None):
     """Function used to minimize loglikelihood to obtain NK, factors and core of Cp and Pt"""
-    meanShape = (n_cluster, zflowTensor.shape[0], zflowTensor.shape[2], zflowTensor.shape[3], zflowTensor.shape[4])
+    meanShape = (n_cluster, X.shape[0], X.shape[2], X.shape[3], X.shape[4])
 
-    args = (meanShape, rank, zflowTensor.to_numpy())
+    args = (meanShape, rank, X.to_numpy())
     func = jit(value_and_grad(maxloglik_ptnnp), static_argnums=(1, 2))
 
     if x0 is None:
@@ -135,9 +161,9 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
 
     hvpj = jit(hvp, static_argnums=(2, 3))
 
-    tq = tqdm(total=maxiter, delay=0.1)
+    tq = tqdm(total=maxiter, delay=0.1, disable=(verbose is False))
 
-    def callback(xk, state):
+    def callback(_, state):
         gNorm = np.linalg.norm(state.grad)
         tq.set_postfix(val="{:.2e}".format(state.fun), g="{:.2e}".format(gNorm), refresh=False)
         tq.update(1)
@@ -148,12 +174,8 @@ def minimize_func(zflowTensor: xa.DataArray, rank: int, n_cluster: int, maxiter=
     tq.close()
 
     optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
-    optLL = -opt.fun
-    preNormCP = copy(optCP)
-    optCP = cp_normalize((None, optCP))
-    optVec = opt.x
-
-    return optNK, optCP, optPT, optLL, optVec, preNormCP
+    preNormCP = deepcopy(optCP)
+    return optNK, cp_normalize((None, optCP)), optPT, -opt.fun, opt.x, preNormCP
 
 
 def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=200):
@@ -167,7 +189,7 @@ def tensorGMM_CV(X, numFolds: int, numClusters: int, numRank: int, maxiter=200):
     # Start generating splits and running model
     for train_index, test_index in kf.split(X[:, :, 0, 0, 0].T):
         # Train
-        _, _, _, _, x0, _ = minimize_func(X[:, train_index, :, :, :], numRank, numClusters, maxiter=maxiter, x0=x0)
+        _, _, _, _, x0, _ = minimize_func(X[:, train_index, :, :, :], numRank, numClusters, maxiter=maxiter, verbose=False, x0=x0)
         # Test
         test_ll = -maxloglik_ptnnp(x0, meanShape, numRank, X[:, test_index, :, :, :].to_numpy())
         logLik += test_ll
