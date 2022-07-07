@@ -125,8 +125,8 @@ def gene_import(offset=1.0,filter=False):
 
 def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
-    finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
-    # finalDF = pd.read_csv('FilteredDrugs_NoOffset.csv')
+    # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
+    finalDF = pd.read_csv("/opt/andrew/FilteredLogDrugs_Offset_1.1.csv")
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 

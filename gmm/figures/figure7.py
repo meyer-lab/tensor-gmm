@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from .common import subplotLabel, getSetup
-from gmm.scImport import ThompsonDrugXA, gene_import, import_thompson_drug, mu_sigma_normalize, gene_filter
+from gmm.scImport import ThompsonDrugXA, gene_import
 from gmm.tensor import minimize_func, tensorGMM_CV
 import scipy.cluster.hierarchy as sch
 
@@ -16,6 +16,8 @@ def makeFigure():
     
     ax[5].axis("off")
     
+    geneDF = gene_import(offset=1.1,filter=True)
+    
     num = 290
     fac = 12
     drugXA, fac_vector, varexpl_NMF = ThompsonDrugXA(numCells=num, rank=fac, maxit=10)
@@ -23,7 +25,6 @@ def makeFigure():
     xlabel = "Number of Components"
     ylabel = "R2X"
     ax[0].set(xlabel=xlabel, ylabel=ylabel)
-
 
     rank = 3
     clust = 3
@@ -48,21 +49,21 @@ def makeFigure():
     ranknumb = np.arange(2, 6)
     n_cluster = np.arange(2, 6)
 
-    # maxloglikDFcv = pd.DataFrame()
-    # for i in range(len(ranknumb)):
-    #     row = pd.DataFrame()
-    #     row["Rank"] = ["Rank:" + str(ranknumb[i])]
-    #     for j in range(len(n_cluster)):
-    #         loglik = tensorGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
-    #         print("LogLik", loglik)
-    #         row["Cluster:" + str(n_cluster[j])] = loglik
+    maxloglikDFcv = pd.DataFrame()
+    for i in range(len(ranknumb)):
+        row = pd.DataFrame()
+        row["Rank"] = ["Rank:" + str(ranknumb[i])]
+        for j in range(len(n_cluster)):
+            loglik = tensorGMM_CV(drugXA, numFolds=3, numClusters=n_cluster[j], numRank=ranknumb[i])
+            print("LogLik", loglik)
+            row["Cluster:" + str(n_cluster[j])] = loglik
 
-    #     maxloglikDFcv = pd.concat([maxloglikDFcv, row])
+        maxloglikDFcv = pd.concat([maxloglikDFcv, row])
 
 
-    # maxloglikDFcv = maxloglikDFcv.set_index("Rank")
-    # sns.heatmap(data=maxloglikDFcv, ax=ax[6])
-    # ax[6].set(title="Cross Validation")
+    maxloglikDFcv = maxloglikDFcv.set_index("Rank")
+    sns.heatmap(data=maxloglikDFcv, ax=ax[6])
+    ax[6].set(title="Cross Validation")
 
 
 
