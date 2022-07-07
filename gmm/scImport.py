@@ -77,7 +77,7 @@ def mu_sigma_normalize(geneDF, scalingfactor=1000):
     assert np.isnan(normG).all() == False
     assert np.isfinite(normG).all() == True
 
-    logG = np.log10(scalingfactor(normG) + 1)
+    logG = np.log10((scalingfactor*(normG)) + 1)
 
     means = np.mean(logG, axis=0)
     std = np.std(logG, axis=0)
