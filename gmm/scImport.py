@@ -50,7 +50,7 @@ def mu_sigma_normalize(geneDF):
     assert np.isnan(filtDF.to_numpy()).all() == False
     assert np.isfinite(filtDF.to_numpy()).all() == True
     
-    inplaceDF = filtDF.where(filtDF >= 0, 1, inplace=False)
+    inplaceDF = filtDF.where(filtDF <= 0, 1, inplace=False)
     filteredGenes = filtDF[filtDF.columns[inplaceDF.mean(axis=0) > .001]]
     sumGenes = filteredGenes.sum(axis=0)
     
