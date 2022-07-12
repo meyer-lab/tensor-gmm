@@ -135,7 +135,8 @@ def test_cov_fit():
     assert math.isclose(cov[1][0], covR[1][0], abs_tol=0.2)
     assert math.isclose(cov[0][1], covR[0][1], abs_tol=0.2)
     assert math.isclose(cov[1][1], covR[1][1], abs_tol=0.3)
-    
+
+
 def test_loglikelihood_NK():
     """Testing to see if loglilihood is a number"""
     cluster = 6
@@ -151,4 +152,3 @@ def test_loglikelihood_NK():
 
     ll = comparingGMMjax_NK(X, nkFact, meanFact, precBuild)
     assert np.isfinite(ll)
-    
