@@ -129,8 +129,11 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     finalDF.drop(columns=["Unnamed: 0"], axis=1, inplace=True)
     finalDF = finalDF.groupby(by="Drug").sample(n=numCells).reset_index(drop=True)
 
-    _, geneFactors, _ = geneNNMF(finalDF, k=rank, verbose=0, maxiteration=maxit)
-    rank_vector, varexpl_NMF = tensor_R2X(finalDF, rank, maxit)
+    rank_vec = np.arange(1, rank + 1)
+    sse_error = np.empty(len(rank_vec))
+
+    for i in range(len(rank_vec)):
+        _, geneFactors, sse_error[i] = geneNNMF(finalDF, k=rank_vec[i], verbose=0, maxiteration=maxit)
 
     cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
     PopAlignDF = pd.DataFrame(data=geneFactors, columns=cmpCol)
@@ -141,28 +144,8 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     PopAlignXA = PopAlignXA[cmpCol].to_array(dim="Factor")
 
     npPopAlign = np.reshape(PopAlignXA.to_numpy(), (PopAlignXA.shape[0], PopAlignXA.shape[1], -1, 1, 1))
-    PopAlignXA = xa.DataArray(
-        npPopAlign,
-        dims=("Factor", "Cell", "Drug", "Throwaway 1", "Throwaway 2"),
-        coords={
-            "Factor": cmpCol,
-            "Cell": np.arange(1, numCells + 1),
-            "Drug": finalDF["Drug"].unique(),
-            "Throwaway 1": ["Throwaway"],
-            "Throwaway 2": ["Throwaway"],
-        },
-    )
+    PopAlignXA = xa.DataArray(npPopAlign, dims=("Factor", "Cell", "Drug", "Throwaway 1", "Throwaway 2"),
+        coords={"Factor": cmpCol, "Cell": np.arange(1, numCells + 1),
+            "Drug": finalDF["Drug"].unique(), "Throwaway 1": ["Throwaway"], "Throwaway 2": ["Throwaway"],},)
 
-    return PopAlignXA, rank_vector, varexpl_NMF
-
-
-def tensor_R2X(tensor, maxrank, maxit):
-    """Calculates the R2X value even where NaN values are present"""
-    rank = np.arange(1, maxrank + 1)
-    sse_error = np.empty(len(rank))
-    tensor_nodrug = tensor.drop("Drug", axis=1)
-
-    for i in range(len(rank)):
-        _, _, sse_error[i] = geneNNMF(tensor, k=rank[i], verbose=0, maxiteration=maxit)
-
-    return rank, sse_error
+    return PopAlignXA, rank_vec, sse_error
