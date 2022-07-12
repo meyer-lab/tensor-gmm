@@ -14,14 +14,14 @@ def makeFigure():
     # Get list of axis objects
     ax, f = getSetup((10, 8), (3, 3))
     
-    ax[5].axis("off")
+    # ax[5].axis("off")
     
     # geneDF = gene_import(offset=1.1,filter=True)
     
     num = 290
     fac = 12
-    drugXA, fac_vector, varexpl_NMF = ThompsonDrugXA(numCells=num, rank=fac, maxit=10)
-    ax[0].plot(fac_vector, varexpl_NMF, "r")
+    drugXA, fac_vector, sse = ThompsonDrugXA(numCells=num, rank=fac, maxit=10)
+    ax[0].plot(fac_vector, sse, "r")
     xlabel = "Number of Components"
     ylabel = "SSE"
     ax[0].set(xlabel=xlabel, ylabel=ylabel)
