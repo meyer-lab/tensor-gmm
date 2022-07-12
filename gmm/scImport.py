@@ -1,3 +1,5 @@
+import os
+from os.path import join
 import numpy as np
 import pandas as pd
 import csv
@@ -5,6 +7,8 @@ import xarray as xa
 from sklearn.decomposition import NMF
 from scipy.io import mmread
 from scipy.stats import linregress
+
+path_here = os.path.dirname(os.path.dirname(__file__))
 
 
 def import_thompson_drug():
@@ -122,7 +126,7 @@ def gene_import(offset=1.0, filter=False):
     return filteredGeneDF
 
 
-def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
+def ThompsonDrugXA(numCells: int, rank: int, maxit: int, saveFacts=False):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
     # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
     finalDF = pd.read_csv("/opt/andrew/FilteredLogDrugs_Offset_1.1.csv")
@@ -132,8 +136,14 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int):
     rank_vec = np.arange(1, rank + 1)
     sse_error = np.empty(len(rank_vec))
 
-    for i in range(len(rank_vec)):
-        _, geneFactors, sse_error[i] = geneNNMF(finalDF, k=rank_vec[i], verbose=0, maxiteration=maxit)
+    if saveFacts:
+        for i in range(len(rank_vec)):
+            _, geneFactors, sse_error[i] = geneNNMF(finalDF, k=rank_vec[i], verbose=0, maxiteration=maxit)
+            np.save(join(path_here, "gmm/data/NNMF_Facts/NNMF_" + str(rank_vec[i]) + "_Components.npy"), geneFactors)
+        np.save(join(path_here, "gmm/data/NNMF_Errors.npy"), sse_error)
+    else:
+        geneFactors = np.load(join(path_here, "gmm/data/NNMF_Facts/NNMF_" + str(rank) + "_Components.npy"))
+        sse_error = np.load(join(path_here, "gmm/data/NNMF_Errors.npy"))[0:rank]
 
     cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
     PopAlignDF = pd.DataFrame(data=geneFactors, columns=cmpCol)
