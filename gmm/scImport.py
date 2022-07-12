@@ -126,7 +126,7 @@ def gene_import(offset=1.0, filter=False):
     return filteredGeneDF
 
 
-def ThompsonDrugXA(numCells: int, rank: int, maxit: int, saveFacts=False):
+def ThompsonDrugXA(numCells: int, rank: int, maxit: int, runFacts=False):
     """Converts DF to Xarray given number of cells, factor number, and max iter: Factor, CellNumb, Drug, Empty, Empty"""
     # finalDF = pd.read_csv("/opt/andrew/FilteredDrugs_Offset1.3.csv")
     finalDF = pd.read_csv("/opt/andrew/FilteredLogDrugs_Offset_1.1.csv")
@@ -136,11 +136,11 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int, saveFacts=False):
     rank_vec = np.arange(1, rank + 1)
     sse_error = np.empty(len(rank_vec))
 
-    if saveFacts:
+    if runFacts:
         for i in range(len(rank_vec)):
             _, geneFactors, sse_error[i] = geneNNMF(finalDF, k=rank_vec[i], verbose=0, maxiteration=maxit)
-            np.save(join(path_here, "gmm/data/NNMF_Facts/NNMF_" + str(rank_vec[i]) + "_Components.npy"), geneFactors)
-        np.save(join(path_here, "gmm/data/NNMF_Errors.npy"), sse_error)
+            # np.save(join(path_here, "gmm/data/NNMF_Facts/NNMF_" + str(rank_vec[i]) + "_Components.npy"), geneFactors)
+        # np.save(join(path_here, "gmm/data/NNMF_Errors.npy"), sse_error)
     else:
         geneFactors = np.load(join(path_here, "gmm/data/NNMF_Facts/NNMF_" + str(rank) + "_Components.npy"))
         sse_error = np.load(join(path_here, "gmm/data/NNMF_Errors.npy"))[0:rank]
