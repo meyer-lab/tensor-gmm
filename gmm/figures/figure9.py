@@ -21,7 +21,7 @@ def makeFigure():
 
     # smallDF(Amount of cells per experiment): Xarray of each marker, cell and condition
     # Final Xarray has dimensions [Marker, Cell Number, Time, Dose, Ligand]
-    cellperexp = 200
+    cellperexp = 100
     zflowTensor, _ = smallDF(cellperexp)
     rank = 4
     n_cluster = 6
@@ -47,8 +47,8 @@ def makeFigure():
     for dose in range(0, 12):
         points = gen_points_GMM(maximizedNK, preNormOptCP, optPTfactors, timei, dose, ligandi)
         pointsDF = pd.DataFrame({"Cluster": points[1],'Foxp3': points[0][:, 0], 'CD25': points[0][:, 1], 'CD45RA': points[0][:, 2], 'CD4': points[0][:, 3], 'pSTAT5': points[0][:, 4]})
-        sns.scatterplot(data=pointsDF, x="pSTAT5", y="CD25", hue="Cluster", palette="tab10", ax=ax[dose*2])
-        sns.scatterplot(data=markertotal,x="pSTAT5",y="CD25",ax=ax[(dose*2)+1])
+        sns.scatterplot(data=pointsDF, x="pSTAT5", y="CD25", hue="Cluster", palette="tab10", ax=ax[dose*2], s=5)
+        sns.scatterplot(data=markertotal,x="pSTAT5",y="CD25",ax=ax[(dose*2)+1], s=5)
         ax[dose*2].set(xlim=(-5, 5), ylim=(-5, 5), title=ligand + " at time " + str(time) + " at nM=" + str(zflowTensor.Dose.values[dose]))
         ax[(dose*2)+1].set(xlim=(-5, 5), ylim=(-5, 5), title=ligand + " at time " + str(time) + " at nM=" + str(zflowTensor.Dose.values[dose]) + ":Original Data")
         
