@@ -15,7 +15,6 @@ from tensorly.cp_tensor import cp_normalize
 
 markerslist = ["Foxp3", "CD25", "CD45RA", "CD4", "pSTAT5"]
 
-
 def vector_to_cp_pt(vectorIn, rank: int, shape: tuple, nk_rearrange=False):
     """Converts linear vector to factors"""
     vectorIn = jnp.exp(vectorIn)
