@@ -1,5 +1,5 @@
 """
-This creates Figure 4.
+Comparing synthetic based data from output of tGMM to original IL-2 dataset
 """
 import enum
 from optparse import Values
