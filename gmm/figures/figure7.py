@@ -29,9 +29,7 @@ def makeFigure():
 
     rank = 3
     clust = 3
-    maximizedNK, optCP, _, x, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust, nk_rearrange=True)
-    print(maximizedNK)
-    print(np.shape(maximizedNK))
+    maximizedNK, optCP, _, x, _, _ = minimize_func(drugXA, rank=rank, n_cluster=clust, nk_rearrange=False)
     print("LogLik", x)
 
     ax[1].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
