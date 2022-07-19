@@ -203,12 +203,11 @@ def minimize_func(X: xa.DataArray, rank: int, n_cluster: int, maxiter=400, verbo
     
     if nk_rearrange is False: 
         func = jit(value_and_grad(maxloglik_ptnnp), static_argnums=(1, 2))
-        if x0 is None:
-            x0 = vector_guess(meanShape, rank)
     else:
         func = jit(value_and_grad(maxloglik_ptnnp_NK), static_argnums=(1, 2))
-        if x0 is None:
-            x0 = vector_guess(meanShape, rank, nk_rearrange=True)
+        
+    if x0 is None:
+        x0 = vector_guess(meanShape, rank, nk_rearrange=nk_rearrange)
 
 
     def hvp(x, v, *argss):
@@ -242,10 +241,8 @@ def minimize_func(X: xa.DataArray, rank: int, n_cluster: int, maxiter=400, verbo
     )
     tq.close()
     
-    if nk_rearrange is False:
-        optNK, optCP, optPT = vector_to_cp_pt(opt.x, rank, meanShape)
-    else: 
-        optNK, optCP, optPT = vector_to_cp_pt(opt.x,rank,meanShape,nk_rearrange=True)
+    
+    optNK, optCP, optPT = vector_to_cp_pt(opt.x,rank,meanShape,nk_rearrange=nk_rearrange)
         
     preNormCP = deepcopy(optCP)
     
