@@ -1,5 +1,5 @@
 """
-This creates Figure 7.
+Calculating SSE, NK and factors for PopAlign scRNA-seq 
 """
 import numpy as np
 import pandas as pd
@@ -43,8 +43,7 @@ def makeFigure():
     coords = {"Cluster": clustArray, "Factor": cmpCol, "Drug": drugXA.coords["Drug"]}
     maximizedFactors = [
         pd.DataFrame(optCP.factors[ii], columns=rankCol, index=coords[key])
-        for ii, key in enumerate(coords)
-    ]
+        for ii, key in enumerate(coords)]
     maximizedFactors[2] = reorder_table(maximizedFactors[2])
 
     for i in range(0, len(maximizedFactors)):

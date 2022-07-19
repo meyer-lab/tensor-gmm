@@ -1,5 +1,5 @@
 """
-This creates Figure 10.
+Calculating SSE, NK and factors for PopAlign scRNA-seq (Allowing NK to vary over rank and cluster)
 """
 import numpy as np
 import pandas as pd
