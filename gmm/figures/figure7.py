@@ -21,7 +21,7 @@ def makeFigure():
 
     num = 290
     fac = 3
-    drugXA, fac_vector, sse = ThompsonDrugXA(numCells=num, rank=fac, maxit=2000, runFacts=False)
+    drugXA, fac_vector, sse = ThompsonDrugXA(numCells=num, rank=fac, maxit=5000, runFacts=False)
     ax[0].plot(fac_vector, sse, "r")
     xlabel = "Number of Components"
     ylabel = "SSE"
