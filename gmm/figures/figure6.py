@@ -20,7 +20,7 @@ def makeFigure():
     for i in np.arange(0, 4):
         plot_synth_pic(blob_DF, t=i * 3, ax=ax[i])
 
-    rank = 6
+    rank = 4
     n_cluster = 6
     blob_xarray = make_blob_tensor(blob_DF)
 
@@ -30,8 +30,7 @@ def makeFigure():
         points = gen_points_GMM(maximizedNK, preNormOptCP, optPTfactors, i * 3, 0, 0)
         points_DF = pd.DataFrame({"Cluster": points[1], "X": points[0][:, 0], "Y": points[0][:, 1]})
         sns.scatterplot(data=points_DF, x="X", y="Y", hue="Cluster", palette="tab10", ax=ax[i + 8])
-        ax[i+8].set(xlim=(-.2, 2.2), ylim=(-.2, 2.2))
-
+        # ax[i+8].set(xlim=(-.2, 2.2), ylim=(-.2, 2.2))
 
     ax[4].bar(np.arange(1, maximizedNK.size + 1), maximizedNK)
     xlabel = "Cluster"
