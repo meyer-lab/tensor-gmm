@@ -146,7 +146,7 @@ def ThompsonDrugXA(numCells: int, rank: int, maxit: int, runFacts=False):
             # loadingsDF.to_csv(join(path_here, "gmm/data/NNMF_Facts/NNMF_" + str(rank_vec[i]) + "_Loadings.csv"))
         # np.save(join(path_here, "gmm/data/NNMF_Errors.npy"), sse_error)
     else:
-        geneFactors = np.load(join(path_here, "gmm/data/NNMF_Facts/NNMF_" + str(rank) + "_Loadings.npy"))
+        geneFactors = np.load(join(path_here, "gmm/data/NNMF_Facts/NNMF_" + str(rank) + "_Scores.npy"))
         sse_error = np.load(join(path_here, "gmm/data/NNMF_Errors.npy"))[0:rank]
 
     cmpCol = [f"Fac. {i}" for i in np.arange(1, rank + 1)]
